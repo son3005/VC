@@ -1,0 +1,15 @@
+{
+  "chainId": 11155111,
+  "network": "sepolia",
+  "address": "0x15621cf7f8Ed3883Cf47207c0f74B9DD71fD97f4",
+  "blockNumber": 11949469,
+  "txHash": "0x09921cd7190d8cd7073ef83ff0a9928b58cdded265d01bc65088d06c677996fb",
+  "deployer": "0x9b8DF93f172AAEB67C31be257C9E4a55a8df1b3B",
+  "deployedAt": "2026-10-19T16:51:12Z",
+  "compiler": "0.8.24",
+  "optimizer": {
+    "enabled": true,
+    "runs": 200
+  },
+  "evmVersion": "shanghai"
+}
