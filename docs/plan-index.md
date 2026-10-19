@@ -34,6 +34,7 @@
 | `../backend/.dockerignore` | Loại secret khỏi image |
 | `../render.yaml` | Render Blueprint cho service Docker |
 | `../.gitignore` | Chặn `.env`, build artifacts |
+| [remix-deploy-guide.md](remix-deploy-guide.md) | Hướng dẫn deploy contract bằng Remix + MetaMask |
 
 ---
 

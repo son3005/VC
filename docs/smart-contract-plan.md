@@ -346,6 +346,15 @@ REPORT_GAS=true npx hardhat test
 
 ## 6. Kế hoạch deploy
 
+### 6.0 Chọn công cụ
+
+| Cách | Khi nào | Ghi chú |
+|---|---|---|
+| **Remix + MetaMask** | Deploy chính thức của đồ án | Không cần private key; xem [remix-deploy-guide.md](remix-deploy-guide.md) |
+| Hardhat script | CI, deploy lặp lại, local | Cần `DEPLOYER_PRIVATE_KEY` trong `.env` |
+
+Các script `deploy.ts` / `add-issuer.ts` bên dưới **chỉ dùng khi deploy bằng Hardhat**. Nếu dùng Remix, làm theo hướng dẫn riêng và bỏ qua 6.2–6.3.
+
 ### 6.1 Thứ tự
 
 ```
