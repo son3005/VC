@@ -1,0 +1,60 @@
+# ============================================================
+#  .gitignore — Verify Certification
+# ============================================================
+
+# --- Biến môi trường / secrets ---
+.env
+.env.*
+!.env.example
+**/.env
+**/.env.*
+!**/.env.example
+*.pem
+*.key
+*.p12
+
+# --- Node ---
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.npm/
+.pnpm-store/
+
+# --- Next.js ---
+.next/
+out/
+.vercel/
+next-env.d.ts
+
+# --- Build / cache ---
+dist/
+build/
+coverage/
+.cache/
+.turbo/
+*.tsbuildinfo
+
+# --- Hardhat ---
+artifacts/
+cache/
+typechain-types/
+coverage.json
+
+# --- Logs / OS ---
+logs/
+*.log
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# --- IDE ---
+.vscode/*
+!.vscode/extensions.json
+.idea/
+
+# --- Tạm ---
+tmp/
+temp/
+*.local
