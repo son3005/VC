@@ -1,0 +1,28 @@
+# ============================================================
+#  backend/.dockerignore
+#  Không đưa secret / file build cũ vào Docker context
+# ============================================================
+
+node_modules
+dist
+coverage
+*.log
+
+# Secrets — tuyệt đối không bake vào image
+.env
+.env.*
+!.env.example
+
+# Git / IDE
+.git
+.gitignore
+.vscode
+.idea
+
+# Tài liệu, không cần trong image
+README.md
+*.md
+
+# Dockerfile tự nó không cần nằm trong context
+Dockerfile
+.dockerignore

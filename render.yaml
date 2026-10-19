@@ -1,0 +1,67 @@
+# ============================================================
+#  render.yaml — Render Blueprint
+#  Verify Certification · backend Docker service
+#  Docs: https://render.com/docs/blueprint-spec
+#
+#  File này phải nằm ở ROOT repo và được push lên nhánh main.
+#  KHÔNG đặt secret thật trong file này — dùng sync: false.
+# ============================================================
+
+services:
+  - type: web
+    name: vc-api
+
+    # Docker: Render build từ backend/Dockerfile, context là backend/
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+
+    plan: free
+    region: singapore
+    branch: main
+
+    # Render gọi endpoint này để kiểm tra service còn sống
+    healthCheckPath: /api/health
+
+    # Tự deploy mỗi khi có commit mới lên main
+    autoDeployTrigger: commit
+
+    envVars:
+      # --- Bắt buộc, giá trị cố định ---
+      - key: NODE_ENV
+        value: production
+      - key: CHAIN_ID
+        value: "11155111"
+      - key: MONGODB_DB
+        value: verify_cert
+      - key: JWT_EXPIRES_IN
+        value: 7d
+      - key: PINATA_GATEWAY
+        value: https://gateway.pinata.cloud/ipfs/
+      - key: MAX_FILE_SIZE_MB
+        value: "5"
+      - key: LOG_LEVEL
+        value: info
+
+      # --- Secret: Render sẽ hỏi giá trị lúc tạo Blueprint ---
+      - key: SEPOLIA_RPC_URL
+        sync: false
+      - key: MONGODB_URI
+        sync: false
+      - key: PINATA_JWT
+        sync: false
+      - key: FRONTEND_ORIGIN
+        sync: false
+
+      # --- JWT secret: Render tự sinh, không cần nhập ---
+      - key: JWT_SECRET
+        generateValue: true
+
+      # --- Cập nhật sau khi deploy smart contract ---
+      - key: CONTRACT_ADDRESS
+        value: "0x0000000000000000000000000000000000000000"
+      - key: DEPLOY_BLOCK
+        value: "0"
+
+      # Lưu ý: KHÔNG khai báo PORT.
+      # Render tự inject PORT=10000 và app phải đọc process.env.PORT.
