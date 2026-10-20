@@ -1,3 +1,4 @@
+import { keccak256, toUtf8Bytes } from "ethers";
 import type { FilterQuery } from "mongoose";
 import { env } from "../config/env";
 import {
@@ -196,6 +197,7 @@ export async function confirmCertificate(
   try {
     certificate = await Certificate.create({
       certificateId: input.certificateId,
+      certificateIdHash: keccak256(toUtf8Bytes(input.certificateId)),
       certificateType: input.certificateType,
       details: input.details,
       templateId: input.templateId,

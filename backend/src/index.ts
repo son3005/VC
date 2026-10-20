@@ -1,6 +1,7 @@
 import { app } from "./app";
 import { env } from "./config/env";
 import { connectDB, disconnectDB } from "./config/db";
+import { startSync, stopSync } from "./services/sync.service";
 
 async function bootstrap(): Promise<void> {
   await connectDB();
@@ -8,6 +9,11 @@ async function bootstrap(): Promise<void> {
   const server = app.listen(env.PORT, "0.0.0.0", () => {
     console.log(`[server] listening on http://0.0.0.0:${env.PORT}`);
     console.log("[server] health: /api/health");
+
+    void startSync().catch((error) => {
+      const message = error instanceof Error ? error.message : String(error);
+      console.error("[sync] failed to start:", message);
+    });
   });
 
   let shuttingDown = false;
@@ -17,6 +23,7 @@ async function bootstrap(): Promise<void> {
     shuttingDown = true;
 
     console.log(`[server] ${signal} received, shutting down...`);
+    stopSync();
 
     server.close(() => {
       void disconnectDB().finally(() => process.exit(0));

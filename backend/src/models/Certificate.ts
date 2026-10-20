@@ -14,6 +14,7 @@ import type {
 
 export interface ICertificate {
   certificateId: string;
+  certificateIdHash?: string | null;
   certificateType: CertificateType;
   details: CertificateDetails;
 
@@ -67,6 +68,12 @@ const certificateSchema = new Schema<ICertificate>(
       trim: true,
       maxlength: 64,
       match: /^[A-Z0-9-]+$/,
+    },
+    certificateIdHash: {
+      type: String,
+      default: null,
+      lowercase: true,
+      match: /^0x[a-f0-9]{64}$/,
     },
     certificateType: {
       type: String,
@@ -241,6 +248,13 @@ const certificateSchema = new Schema<ICertificate>(
 );
 
 certificateSchema.index({ certificateId: 1 }, { unique: true });
+certificateSchema.index(
+  { certificateIdHash: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { certificateIdHash: { $type: "string" } },
+  }
+);
 certificateSchema.index({ fileHash: 1 }, { unique: true });
 certificateSchema.index({ txHash: 1 }, { unique: true });
 

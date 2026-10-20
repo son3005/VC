@@ -4,6 +4,7 @@ import helmet from "helmet";
 import morgan from "morgan";
 import { ZodError } from "zod";
 import { env } from "./config/env";
+import { adminRouter } from "./routes/admin.routes";
 import { authRouter } from "./routes/auth.routes";
 import { certificateRouter } from "./routes/certificate.routes";
 import { healthRouter } from "./routes/health.routes";
@@ -50,6 +51,7 @@ app.get("/", (_req, res) => {
 });
 
 app.use("/api/auth", authRouter);
+app.use("/api/admin", adminRouter);
 app.use("/api/issuers", issuerRouter);
 app.use("/api/uploads", uploadRouter);
 app.use("/api/certificates", certificateRouter);
