@@ -59,9 +59,9 @@ services:
 
       # --- Cập nhật sau khi deploy smart contract ---
       - key: CONTRACT_ADDRESS
-        value: "0x0000000000000000000000000000000000000000"
+        value: "0x15621cf7f8Ed3883Cf47207c0f74B9DD71fD97f4"
       - key: DEPLOY_BLOCK
-        value: "0"
+        value: "11949469"
 
       # Lưu ý: KHÔNG khai báo PORT.
       # Render tự inject PORT=10000 và app phải đọc process.env.PORT.
