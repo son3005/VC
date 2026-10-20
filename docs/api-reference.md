@@ -103,8 +103,8 @@ Public. Dùng cho Render health check.
     "db": "connected",
     "blockNumber": 11952894,
     "chainId": 11155111,
-    "contract": "0x15621cf7f8Ed3883Cf47207c0f74B9DD71fD97f4",
-    "deployBlock": 11949469,
+    "contract": "0xE939E96E210A4eC13eF85F45193022e5b235fA56",
+    "deployBlock": 11953245,
     "uptimeSeconds": 120,
     "timestamp": "2026-10-19T08:00:00.000Z"
   }
