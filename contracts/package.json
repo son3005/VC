@@ -11,7 +11,7 @@
     "add-issuer:sepolia": "hardhat run scripts/add-issuer.ts --network sepolia"
   },
   "devDependencies": {
-    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
+    "@nomicfoundation/hardhat-toolbox": "^7.0.0",
     "@types/node": "^22.10.0",
     "dotenv": "^16.4.5",
     "hardhat": "^2.22.17",
