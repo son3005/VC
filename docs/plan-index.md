@@ -1,6 +1,6 @@
 # Danh mục kế hoạch — Verify Certification
 
-> Cập nhật lần cuối: sau khi hoàn thành plan Smart Contract, Database, Backend, Frontend.
+> Cập nhật lần cuối: sau khi hoàn thành backend API, PDF template và tài liệu API/class diagram.
 
 ---
 
@@ -21,6 +21,8 @@
 | 11 | [certificate-template-plan.md](certificate-template-plan.md) | 4 loại template, layout A4, PDFKit, QR, quy ước điểm | ✅ |
 | 12 | [security-privacy-plan.md](security-privacy-plan.md) | STRIDE, risk register, khóa, PII, OWASP, ứng cứu | ✅ |
 | 13 | [cicd-plan.md](cicd-plan.md) | GitHub Actions, branch protection, deploy contract thủ công | ✅ |
+| 14 | [api-reference.md](api-reference.md) | Tài liệu API thực tế: auth, issuer, upload, certificate, public, admin, sync, mã lỗi | ✅ |
+| 15 | [class-diagram.md](class-diagram.md) | Class diagram service (Admin kế thừa Issuer), domain models, kiến trúc lớp | ✅ |
 
 ### Cấu hình đã tạo
 
