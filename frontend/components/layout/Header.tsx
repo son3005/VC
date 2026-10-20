@@ -1,11 +1,13 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import { Container } from './Container';
 import { Button } from '@/components/ui/Button';
+import { ConnectButton } from '@/components/wallet/ConnectButton';
+import { useAuth } from '@/hooks/useAuth';
 import { LogIn, Menu, X, LogOut, UserCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -13,33 +15,10 @@ export function Header() {
   const pathname = usePathname();
   const router = useRouter();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [userRole, setUserRole] = useState<string | null>(null);
-  const [userName, setUserName] = useState<string | null>(null);
-
-  useEffect(() => {
-    // Check if user is logged in
-    const token = localStorage.getItem('vc_token');
-    const userStr = localStorage.getItem('vc_user');
-    if (token && userStr) {
-      try {
-        const user = JSON.parse(userStr);
-        setUserRole(user.role);
-        setUserName(user.displayName || user.email);
-      } catch {
-        setUserRole(null);
-        setUserName(null);
-      }
-    } else {
-      setUserRole(null);
-      setUserName(null);
-    }
-  }, [pathname]);
+  const { user, role, logout } = useAuth();
 
   const handleLogout = () => {
-    localStorage.removeItem('vc_token');
-    localStorage.removeItem('vc_user');
-    setUserRole(null);
-    setUserName(null);
+    logout();
     router.push('/login');
   };
 
@@ -95,16 +74,18 @@ export function Header() {
             })}
           </nav>
 
-          {/* User/Auth Actions */}
+          {/* User/Auth & Wallet Actions */}
           <div className="hidden md:flex items-center gap-3">
-            {userRole ? (
+            <ConnectButton />
+
+            {user ? (
               <div className="flex items-center gap-2">
                 <Link
-                  href={userRole === 'admin' ? '/admin' : '/issuer'}
+                  href={role === 'admin' ? '/admin' : '/issuer'}
                   className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[#FFFDF7] border border-[#E3D5B8] text-xs font-semibold text-[#010E1C] hover:border-[#E6AB42] transition-colors"
                 >
                   <UserCircle className="w-4 h-4 text-[#E6AB42]" />
-                  <span>{userName || (userRole === 'admin' ? 'Quản trị viên' : 'Đơn vị cấp')}</span>
+                  <span>{user.displayName || (role === 'admin' ? 'Quản trị viên' : 'Đơn vị cấp')}</span>
                 </Link>
                 <button
                   onClick={handleLogout}
@@ -139,7 +120,11 @@ export function Header() {
 
       {/* Mobile Drawer */}
       {mobileMenuOpen && (
-        <div className="md:hidden border-t border-[#E3D5B8] bg-[#FAF4DF] px-4 pt-3 pb-5 space-y-2">
+        <div className="md:hidden border-t border-[#E3D5B8] bg-[#FAF4DF] px-4 pt-3 pb-5 space-y-3">
+          <div className="px-2">
+            <ConnectButton className="w-full justify-center" />
+          </div>
+
           {navLinks.map((link) => (
             <Link
               key={link.href}
@@ -157,14 +142,14 @@ export function Header() {
           ))}
 
           <div className="pt-2 border-t border-[#E3D5B8]/60">
-            {userRole ? (
+            {user ? (
               <div className="space-y-2">
                 <Link
-                  href={userRole === 'admin' ? '/admin' : '/issuer'}
+                  href={role === 'admin' ? '/admin' : '/issuer'}
                   onClick={() => setMobileMenuOpen(false)}
                   className="block px-4 py-2.5 rounded-xl bg-[#FFFDF7] border border-[#E3D5B8] text-sm font-semibold text-[#010E1C]"
                 >
-                  Bảng điều khiển ({userRole === 'admin' ? 'Quản trị' : 'Đơn vị cấp'})
+                  Bảng điều khiển ({role === 'admin' ? 'Quản trị' : 'Đơn vị cấp'})
                 </Link>
                 <button
                   onClick={() => {
