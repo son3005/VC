@@ -12,17 +12,9 @@ const ISSUER_EMAIL = (
   .trim()
   .toLowerCase();
 const ISSUER_PASSWORD = process.env.SEED_ISSUER_PASSWORD ?? "";
-const ISSUER_WALLET = (
-  process.env.ISSUER_WALLET_ADDRESS ??
-  "0x9b8DF93f172AAEB67C31be257C9E4a55a8df1b3B"
-).toLowerCase();
-
-const ADMIN_WALLET_RAW = (process.env.ADMIN_WALLET_ADDRESS ?? "")
+const ISSUER_WALLET = (process.env.ISSUER_WALLET_ADDRESS ?? "")
   .trim()
   .toLowerCase();
-const ADMIN_WALLET = /^0x[a-f0-9]{40}$/.test(ADMIN_WALLET_RAW)
-  ? ADMIN_WALLET_RAW
-  : null;
 
 const ISSUER_NAME = "Khoa Công nghệ Thông tin";
 const ISSUER_CODE = "CNTT";
@@ -32,6 +24,10 @@ async function seed(): Promise<void> {
     throw new Error(
       "Thiếu SEED_ADMIN_PASSWORD hoặc SEED_ISSUER_PASSWORD trong .env"
     );
+  }
+
+  if (!ISSUER_WALLET) {
+    throw new Error("Thiếu ISSUER_WALLET_ADDRESS trong .env");
   }
 
   if (!/^0x[a-f0-9]{40}$/.test(ISSUER_WALLET)) {
@@ -51,7 +47,7 @@ async function seed(): Promise<void> {
         passwordHash: adminPasswordHash,
         role: "admin",
         displayName: "Phòng đào tạo",
-        walletAddress: ADMIN_WALLET,
+        walletAddress: null,
         isActive: true,
       },
     },
@@ -102,13 +98,11 @@ async function seed(): Promise<void> {
     }
   );
 
+  const maskedWallet = `${ISSUER_WALLET.slice(0, 6)}...${ISSUER_WALLET.slice(-4)}`;
+
   console.log("[seed] done");
-  console.log(
-    `  admin:  ${admin.email} (role=admin, wallet=${ADMIN_WALLET ?? "chưa gán"})`
-  );
-  console.log(
-    `  issuer: ${issuerUser.email} (role=issuer, wallet=${ISSUER_WALLET})`
-  );
+  console.log(`  admin:  ${admin.email} (role=admin)`);
+  console.log(`  issuer: ${issuerUser.email} (role=issuer, wallet=${maskedWallet})`);
   console.log(`  issuer doc: ${issuer.code} — ${issuer.name}`);
 }
 
