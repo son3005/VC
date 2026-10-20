@@ -6,6 +6,10 @@ const ADMIN_EMAIL = (process.env.SEED_ADMIN_EMAIL ?? "admin@verifycert.local")
   .trim()
   .toLowerCase();
 const ADMIN_PASSWORD = process.env.SEED_ADMIN_PASSWORD ?? "";
+const ADMIN_WALLET = (process.env.ADMIN_WALLET_ADDRESS ?? "")
+  .trim()
+  .toLowerCase();
+
 const ISSUER_EMAIL = (
   process.env.SEED_ISSUER_EMAIL ?? "issuer@verifycert.local"
 )
@@ -19,6 +23,19 @@ const ISSUER_WALLET = (process.env.ISSUER_WALLET_ADDRESS ?? "")
 const ISSUER_NAME = "Khoa Công nghệ Thông tin";
 const ISSUER_CODE = "CNTT";
 
+function maskWallet(wallet: string): string {
+  return `${wallet.slice(0, 6)}...${wallet.slice(-4)}`;
+}
+
+function assertWallet(value: string, label: string): void {
+  if (!value) {
+    throw new Error(`Thiếu ${label} trong .env`);
+  }
+  if (!/^0x[a-f0-9]{40}$/.test(value)) {
+    throw new Error(`${label} không hợp lệ`);
+  }
+}
+
 async function seed(): Promise<void> {
   if (!ADMIN_PASSWORD || !ISSUER_PASSWORD) {
     throw new Error(
@@ -26,12 +43,11 @@ async function seed(): Promise<void> {
     );
   }
 
-  if (!ISSUER_WALLET) {
-    throw new Error("Thiếu ISSUER_WALLET_ADDRESS trong .env");
-  }
+  assertWallet(ADMIN_WALLET, "ADMIN_WALLET_ADDRESS");
+  assertWallet(ISSUER_WALLET, "ISSUER_WALLET_ADDRESS");
 
-  if (!/^0x[a-f0-9]{40}$/.test(ISSUER_WALLET)) {
-    throw new Error("ISSUER_WALLET_ADDRESS không hợp lệ");
+  if (ADMIN_WALLET === ISSUER_WALLET) {
+    throw new Error("ADMIN_WALLET_ADDRESS phải khác ISSUER_WALLET_ADDRESS");
   }
 
   await connectDB();
@@ -39,26 +55,7 @@ async function seed(): Promise<void> {
   const adminPasswordHash = await bcrypt.hash(ADMIN_PASSWORD, 10);
   const issuerPasswordHash = await bcrypt.hash(ISSUER_PASSWORD, 10);
 
-  // Admin không gắn ví để tránh trùng unique với issuer.
-  const admin = await User.findOneAndUpdate(
-    { email: ADMIN_EMAIL },
-    {
-      $set: {
-        passwordHash: adminPasswordHash,
-        role: "admin",
-        displayName: "Phòng đào tạo",
-        walletAddress: null,
-        isActive: true,
-      },
-    },
-    {
-      upsert: true,
-      new: true,
-      runValidators: true,
-      setDefaultsOnInsert: true,
-    }
-  );
-
+  // Tạo/cập nhật issuer trước để giải phóng ví cũ (nếu đang trùng admin).
   const issuerUser = await User.findOneAndUpdate(
     { email: ISSUER_EMAIL },
     {
@@ -98,11 +95,32 @@ async function seed(): Promise<void> {
     }
   );
 
-  const maskedWallet = `${ISSUER_WALLET.slice(0, 6)}...${ISSUER_WALLET.slice(-4)}`;
+  const admin = await User.findOneAndUpdate(
+    { email: ADMIN_EMAIL },
+    {
+      $set: {
+        passwordHash: adminPasswordHash,
+        role: "admin",
+        displayName: "Phòng đào tạo",
+        walletAddress: ADMIN_WALLET,
+        isActive: true,
+      },
+    },
+    {
+      upsert: true,
+      new: true,
+      runValidators: true,
+      setDefaultsOnInsert: true,
+    }
+  );
 
   console.log("[seed] done");
-  console.log(`  admin:  ${admin.email} (role=admin)`);
-  console.log(`  issuer: ${issuerUser.email} (role=issuer, wallet=${maskedWallet})`);
+  console.log(
+    `  admin:  ${admin.email} (role=admin, wallet=${maskWallet(ADMIN_WALLET)})`
+  );
+  console.log(
+    `  issuer: ${issuerUser.email} (role=issuer, wallet=${maskWallet(ISSUER_WALLET)})`
+  );
   console.log(`  issuer doc: ${issuer.code} — ${issuer.name}`);
 }
 
