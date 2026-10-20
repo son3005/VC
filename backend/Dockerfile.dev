@@ -1,0 +1,22 @@
+# syntax=docker/dockerfile:1
+# ============================================================
+#  Backend DEV image — hot reload với tsx watch
+#  Dùng cho docker compose, không dùng cho Render
+# ============================================================
+
+FROM node:24.21.0-alpine
+
+WORKDIR /app
+
+# Cài cả devDependencies (typescript, tsx, @types)
+COPY package.json package-lock.json ./
+RUN npm ci --include=dev
+
+COPY . .
+
+ENV NODE_ENV=development
+ENV CHOKIDAR_USEPOLLING=1
+
+EXPOSE 4000
+
+CMD ["npm", "run", "dev"]

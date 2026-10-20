@@ -24,5 +24,5 @@ README.md
 *.md
 
 # Dockerfile tự nó không cần nằm trong context
-Dockerfile
+Dockerfile*
 .dockerignore

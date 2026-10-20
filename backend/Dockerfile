@@ -36,8 +36,9 @@ RUN npm ci --omit=dev && npm cache clean --force
 # Copy output đã build
 COPY --from=build --chown=node:node /app/dist ./dist
 
-# Nếu backend đọc ABI / file tĩnh khác, copy thêm ở đây, ví dụ:
-# COPY --from=build --chown=node:node /app/src/abi ./dist/abi
+# tsc không copy file JSON — phải copy ABI thủ công.
+# Code trong dist/config/*.js sẽ require("../abi/CertificateRegistry.json")
+COPY --from=build --chown=node:node /app/src/abi ./dist/abi
 
 USER node
 EXPOSE 10000

@@ -1,0 +1,36 @@
+name: verify-certification
+
+services:
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    container_name: vc-api-dev
+    ports:
+      - "4000:4000"
+    env_file:
+      - ./backend/.env
+    environment:
+      PORT: 4000
+      CHOKIDAR_USEPOLLING: "1"
+    volumes:
+      # Mount source để sửa code là reload ngay
+      - ./backend:/app
+      # Giữ node_modules của image, không bị đè bởi host
+      - /app/node_modules
+    command: npm run dev
+    restart: unless-stopped
+
+  # Tùy chọn: Mongo local khi không muốn dùng Atlas
+  # docker compose --profile local-db up
+  mongo:
+    image: mongo:7
+    container_name: vc-mongo-dev
+    profiles: ["local-db"]
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+
+volumes:
+  mongo_data:
