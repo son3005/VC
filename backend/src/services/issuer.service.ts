@@ -1,8 +1,20 @@
 import type { FilterQuery } from "mongoose";
-import { Issuer, User, type IIssuer, type IssuerDocument } from "../models";
+import { env } from "../config/env";
+import {
+  Certificate,
+  Issuer,
+  User,
+  type IIssuer,
+  type IssuerDocument,
+} from "../models";
+import type { PrepareCertificateInput } from "../schemas/certificate";
 import type { CreateIssuerInput } from "../schemas/issuer";
 import type { IssuerDTO, PaginationMeta } from "../types/api";
+import type { CertificateDetails } from "../types/certificate";
 import { HttpError } from "../utils/http-error";
+import { sha256Buffer } from "../utils/hash";
+import { certificatePdfService } from "./certificate-pdf";
+import { pinataService } from "./pinata.service";
 import {
   CertificateService,
   confirmCertificate,
@@ -192,6 +204,60 @@ export async function createIssuer(
 export class IssuerService extends CertificateService {
   confirmCertificate = confirmCertificate;
   listIssuerCertificates = listIssuerCertificates;
+  prepareCertificate = prepareCertificate;
 }
 
 export const issuerService = new IssuerService();
+
+export interface PreparedCertificate {
+  cid: string;
+  fileHash: string;
+  sizeBytes: number;
+  templateId: string;
+  templateVersion: string;
+  filename: string;
+}
+
+export async function prepareCertificate(
+  input: PrepareCertificateInput,
+  issuer: IssuerDocument
+): Promise<PreparedCertificate> {
+  const existing = await Certificate.findOne({
+    certificateId: input.certificateId,
+  });
+
+  if (existing) {
+    throw new HttpError(409, "CERTIFICATE_EXISTS", "Mã chứng chỉ đã tồn tại");
+  }
+
+  const baseUrl = env.FRONTEND_ORIGIN.split(",")[0]
+    .trim()
+    .replace(/\/$/, "");
+
+  const pdf = await certificatePdfService.generate({
+    certificateType: input.certificateType,
+    certificateId: input.certificateId,
+    studentName: input.studentName,
+    studentCode: input.studentCode,
+    issuedAt: new Date(),
+    issuerName: issuer.name,
+    verifyUrl: `${baseUrl}/c/${input.certificateId}`,
+    details: input.details as CertificateDetails,
+  });
+
+  const fileHash = sha256Buffer(pdf.buffer);
+  const pin = await pinataService.pinFileToIPFS(
+    pdf.buffer,
+    pdf.filename,
+    "application/pdf"
+  );
+
+  return {
+    cid: pin.cid,
+    fileHash,
+    sizeBytes: pdf.buffer.length,
+    templateId: pdf.templateId,
+    templateVersion: pdf.templateVersion,
+    filename: pdf.filename,
+  };
+}

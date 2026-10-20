@@ -3,6 +3,7 @@ import {
   createCertificateController,
   getCertificateController,
   listCertificatesController,
+  prepareCertificateController,
   revokeCertificateController,
 } from "../controllers/certificate.controller";
 import { requireAuth } from "../middleware/auth";
@@ -13,6 +14,8 @@ const router = Router();
 router.use(requireAuth);
 
 router.get("/", requireActiveIssuer, listCertificatesController);
+router.post("/prepare", requireActiveIssuer, prepareCertificateController);
+router.post("/confirm", requireActiveIssuer, createCertificateController);
 router.post("/", requireActiveIssuer, createCertificateController);
 
 // Revoke cho phép issuer sở hữu hoặc admin owner; service kiểm tra quyền.

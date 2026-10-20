@@ -2,6 +2,7 @@ import type { NextFunction, Request, Response } from "express";
 import {
   certificateListQuerySchema,
   confirmCertificateSchema,
+  prepareCertificateSchema,
   revokeCertificateSchema,
 } from "../schemas/certificate";
 import { certificateIdParamSchema } from "../schemas/public";
@@ -19,6 +20,28 @@ function getActor(req: Request): CertificateActor {
     role: req.user.role,
     walletAddress: req.user.walletAddress,
   };
+}
+
+export async function prepareCertificateController(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    if (!req.issuer) {
+      throw new HttpError(403, "FORBIDDEN", "Chỉ issuer được tạo PDF");
+    }
+
+    const input = prepareCertificateSchema.parse(req.body);
+    const prepared = await issuerService.prepareCertificate(
+      input,
+      req.issuer
+    );
+
+    res.status(201).json({ success: true, data: prepared });
+  } catch (error) {
+    next(error);
+  }
 }
 
 export async function createCertificateController(

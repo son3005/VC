@@ -40,6 +40,9 @@ COPY --from=build --chown=node:node /app/dist ./dist
 # Code trong dist/config/*.js sẽ require("../abi/CertificateRegistry.json")
 COPY --from=build --chown=node:node /app/src/abi ./dist/abi
 
+# Font nhúng cho PDFKit — tsc không copy binary assets
+COPY --from=build --chown=node:node /app/src/services/certificate-pdf/assets ./dist/services/certificate-pdf/assets
+
 USER node
 EXPOSE 10000
 
