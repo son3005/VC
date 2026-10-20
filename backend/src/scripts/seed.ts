@@ -17,6 +17,13 @@ const ISSUER_WALLET = (
   "0x9b8DF93f172AAEB67C31be257C9E4a55a8df1b3B"
 ).toLowerCase();
 
+const ADMIN_WALLET_RAW = (process.env.ADMIN_WALLET_ADDRESS ?? "")
+  .trim()
+  .toLowerCase();
+const ADMIN_WALLET = /^0x[a-f0-9]{40}$/.test(ADMIN_WALLET_RAW)
+  ? ADMIN_WALLET_RAW
+  : null;
+
 const ISSUER_NAME = "Khoa Công nghệ Thông tin";
 const ISSUER_CODE = "CNTT";
 
@@ -44,7 +51,7 @@ async function seed(): Promise<void> {
         passwordHash: adminPasswordHash,
         role: "admin",
         displayName: "Phòng đào tạo",
-        walletAddress: null,
+        walletAddress: ADMIN_WALLET,
         isActive: true,
       },
     },
@@ -96,7 +103,9 @@ async function seed(): Promise<void> {
   );
 
   console.log("[seed] done");
-  console.log(`  admin:  ${admin.email} (role=admin)`);
+  console.log(
+    `  admin:  ${admin.email} (role=admin, wallet=${ADMIN_WALLET ?? "chưa gán"})`
+  );
   console.log(
     `  issuer: ${issuerUser.email} (role=issuer, wallet=${ISSUER_WALLET})`
   );
