@@ -9,6 +9,7 @@ import {
   type IssuerDocument,
 } from "../models";
 import type {
+  AdminCertificateListQuery,
   CertificateListQuery,
   ConfirmCertificateInput,
 } from "../schemas/certificate";
@@ -376,6 +377,46 @@ export async function listIssuerCertificates(
 
   if (query.status) filter.status = query.status;
   if (query.type) filter.certificateType = query.type;
+
+  if (query.q) {
+    const regex = new RegExp(escapeRegex(query.q), "i");
+    filter.$or = [
+      { certificateId: regex },
+      { studentNameNormalized: regex },
+      { studentCode: regex },
+    ];
+  }
+
+  const skip = (query.page - 1) * query.limit;
+
+  const [docs, total] = await Promise.all([
+    Certificate.find(filter)
+      .sort({ issuedAt: -1 })
+      .skip(skip)
+      .limit(query.limit),
+    Certificate.countDocuments(filter),
+  ]);
+
+  return {
+    data: docs.map(toIssuerCertificate),
+    meta: {
+      page: query.page,
+      limit: query.limit,
+      total,
+      totalPages: Math.ceil(total / query.limit),
+    },
+  };
+}
+
+export async function listAllCertificates(
+  query: AdminCertificateListQuery
+): Promise<{ data: CertificateIssuerDTO[]; meta: PaginationMeta }> {
+  const filter: FilterQuery<ICertificate> = {};
+
+  if (query.status) filter.status = query.status;
+  if (query.type) filter.certificateType = query.type;
+  if (query.issuerWallet) filter.issuerWallet = query.issuerWallet;
+  if (query.year) filter.graduationYear = query.year;
 
   if (query.q) {
     const regex = new RegExp(escapeRegex(query.q), "i");

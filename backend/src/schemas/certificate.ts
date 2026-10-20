@@ -221,4 +221,18 @@ export const certificateListQuerySchema = paginationSchema.extend({
 
 export type CertificateListQuery = z.infer<typeof certificateListQuerySchema>;
 
+export const adminCertificateListQuerySchema = certificateListQuerySchema.extend({
+  issuerWallet: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .regex(/^0x[a-f0-9]{40}$/)
+    .optional(),
+  year: z.coerce.number().int().min(2000).max(2100).optional(),
+});
+
+export type AdminCertificateListQuery = z.infer<
+  typeof adminCertificateListQuerySchema
+>;
+
 
