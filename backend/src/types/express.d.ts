@@ -1,4 +1,4 @@
-import type { UserRole } from "../models/User";
+import type { IssuerDocument, UserRole } from "../models";
 
 declare global {
   namespace Express {
@@ -9,6 +9,7 @@ declare global {
         role: UserRole;
         walletAddress: string | null;
       };
+      issuer?: IssuerDocument;
     }
   }
 }
