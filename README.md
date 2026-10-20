@@ -17,9 +17,9 @@ Hệ thống cấp và xác thực chứng chỉ trên Ethereum Sepolia. PDF là
 ## Contract
 
 ```
-CertificateRegistry: 0x15621cf7f8Ed3883Cf47207c0f74B9DD71fD97f4
+CertificateRegistry: 0xE939E96E210A4eC13eF85F45193022e5b235fA56
 Network:             Sepolia (11155111)
-Deploy block:        11949469
+Deploy block:        11953245
 ```
 
 ## Chạy local

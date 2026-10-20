@@ -66,7 +66,7 @@ jobs:
       NODE_ENV: test
       JWT_SECRET: test-secret-at-least-32-characters-long
       MONGODB_URI: mongodb://127.0.0.1:27017/verify_cert_test
-      CONTRACT_ADDRESS: "0x15621cf7f8Ed3883Cf47207c0f74B9DD71fD97f4"
+      CONTRACT_ADDRESS: "0xE939E96E210A4eC13eF85F45193022e5b235fA56"
       SEPOLIA_RPC_URL: http://127.0.0.1:8545
       PINATA_JWT: test-pinata-jwt
       FRONTEND_ORIGIN: http://localhost:3000
@@ -109,7 +109,7 @@ jobs:
           NEXT_PUBLIC_CHAIN_NAME: Sepolia
           NEXT_PUBLIC_RPC_URL: https://ethereum-sepolia-rpc.publicnode.com
           NEXT_PUBLIC_EXPLORER_URL: https://sepolia.etherscan.io
-          NEXT_PUBLIC_CONTRACT_ADDRESS: "0x15621cf7f8Ed3883Cf47207c0f74B9DD71fD97f4"
-          NEXT_PUBLIC_DEPLOY_BLOCK: "11949469"
+          NEXT_PUBLIC_CONTRACT_ADDRESS: "0xE939E96E210A4eC13eF85F45193022e5b235fA56"
+          NEXT_PUBLIC_DEPLOY_BLOCK: "11953245"
           NEXT_PUBLIC_API_URL: https://example.com
           NEXT_PUBLIC_IPFS_GATEWAY: https://gateway.pinata.cloud/ipfs/
