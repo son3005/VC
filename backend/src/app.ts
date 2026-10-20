@@ -5,8 +5,11 @@ import morgan from "morgan";
 import { ZodError } from "zod";
 import { env } from "./config/env";
 import { authRouter } from "./routes/auth.routes";
+import { certificateRouter } from "./routes/certificate.routes";
 import { healthRouter } from "./routes/health.routes";
 import { issuerRouter } from "./routes/issuer.routes";
+import { publicRouter } from "./routes/public.routes";
+import { uploadRouter } from "./routes/upload.routes";
 import { HttpError } from "./utils/http-error";
 
 const app = express();
@@ -48,6 +51,9 @@ app.get("/", (_req, res) => {
 
 app.use("/api/auth", authRouter);
 app.use("/api/issuers", issuerRouter);
+app.use("/api/uploads", uploadRouter);
+app.use("/api/certificates", certificateRouter);
+app.use("/api/public", publicRouter);
 app.use("/api", healthRouter);
 
 app.use((_req, res) => {

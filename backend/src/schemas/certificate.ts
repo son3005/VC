@@ -206,6 +206,9 @@ export const confirmCertificateSchema = prepareCertificateSchema.and(
 // Alias để controller dễ đọc
 export const issueCertificateSchema = confirmCertificateSchema;
 
+export type PrepareCertificateInput = z.infer<typeof prepareCertificateSchema>;
+export type ConfirmCertificateInput = z.infer<typeof confirmCertificateSchema>;
+
 export const revokeCertificateSchema = z.object({
   txHash: txHashSchema,
 });
@@ -215,5 +218,7 @@ export const certificateListQuerySchema = paginationSchema.extend({
   status: certificateStatusSchema.optional(),
   type: certificateTypeSchema.optional(),
 });
+
+export type CertificateListQuery = z.infer<typeof certificateListQuerySchema>;
 
 
