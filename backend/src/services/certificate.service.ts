@@ -30,6 +30,7 @@ import { maskCode, maskName } from "../utils/mask";
 import { normalizeText } from "../utils/normalize";
 import {
   findCertificateIssuedEvent,
+  findCertificateRevokedEvent,
   getCertificateOnChain,
   verifyHashOnChain,
 } from "./chain.service";
@@ -262,6 +263,107 @@ export async function confirmCertificate(
   }
 
   return toIssuerCertificate(certificate);
+}
+
+export interface CertificateActor {
+  id: string;
+  role: "admin" | "issuer";
+  walletAddress: string | null;
+}
+
+export async function getIssuerCertificate(
+  certificateId: string,
+  actor: CertificateActor
+): Promise<CertificateIssuerDTO> {
+  const doc = await Certificate.findOne({ certificateId });
+
+  if (!doc) {
+    throw new HttpError(404, "CERTIFICATE_NOT_FOUND", "Không tìm thấy chứng chỉ");
+  }
+
+  if (
+    actor.role !== "admin" &&
+    (!actor.walletAddress ||
+      actor.walletAddress.toLowerCase() !== doc.issuerWallet.toLowerCase())
+  ) {
+    throw new HttpError(403, "FORBIDDEN", "Bạn không có quyền xem chứng chỉ này");
+  }
+
+  return toIssuerCertificate(doc);
+}
+
+export async function revokeCertificate(
+  certificateId: string,
+  txHash: string,
+  actor: CertificateActor
+): Promise<CertificateIssuerDTO> {
+  const doc = await Certificate.findOne({ certificateId });
+
+  if (!doc) {
+    throw new HttpError(404, "CERTIFICATE_NOT_FOUND", "Không tìm thấy chứng chỉ");
+  }
+
+  if (doc.status === "revoked") {
+    if (
+      doc.revokeTxHash &&
+      doc.revokeTxHash.toLowerCase() === txHash.toLowerCase()
+    ) {
+      return toIssuerCertificate(doc);
+    }
+    throw new HttpError(409, "ALREADY_REVOKED", "Chứng chỉ đã bị thu hồi");
+  }
+
+  if (actor.role !== "admin") {
+    if (
+      !actor.walletAddress ||
+      actor.walletAddress.toLowerCase() !== doc.issuerWallet.toLowerCase()
+    ) {
+      throw new HttpError(
+        403,
+        "FORBIDDEN",
+        "Chỉ issuer đã cấp hoặc admin được thu hồi"
+      );
+    }
+  }
+
+  const event = await findCertificateRevokedEvent(txHash, certificateId);
+  const onChain = await getCertificateOnChain(certificateId);
+
+  if (!onChain || !onChain.isRevoked) {
+    throw new HttpError(
+      422,
+      "TX_INVALID",
+      "Chứng chỉ chưa được thu hồi on-chain"
+    );
+  }
+
+  doc.status = "revoked";
+  doc.revokedAt = new Date(event.revokedAt * 1000);
+  doc.revokeTxHash = txHash.toLowerCase();
+  doc.revokeBlockNumber = event.blockNumber;
+  await doc.save();
+
+  try {
+    await ChainEvent.create({
+      txHash,
+      logIndex: event.logIndex,
+      blockNumber: event.blockNumber,
+      eventType: "CertificateRevoked",
+      payload: {
+        certificateId,
+        revokedAt: event.revokedAt,
+      },
+      contractAddress: env.CONTRACT_ADDRESS.toLowerCase(),
+      processedAt: new Date(),
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (!message.includes("duplicate key")) {
+      console.error("[chain-event] revoke insert failed:", message);
+    }
+  }
+
+  return toIssuerCertificate(doc);
 }
 
 export async function listIssuerCertificates(

@@ -1,4 +1,4 @@
-import { Contract, JsonRpcProvider } from "ethers";
+import { Contract, JsonRpcProvider, keccak256, toUtf8Bytes } from "ethers";
 import abi from "../abi/CertificateRegistry.json";
 import { env } from "../config/env";
 import { HttpError } from "../utils/http-error";
@@ -200,6 +200,67 @@ export async function getCertificateOnChain(
 
     throw new HttpError(502, "CHAIN_ERROR", "Không đọc được chứng chỉ từ blockchain");
   }
+}
+
+export interface CertificateRevokedEvent {
+  blockNumber: number;
+  logIndex: number;
+  revokedAt: number;
+}
+
+export async function findCertificateRevokedEvent(
+  txHash: string,
+  certificateId: string
+): Promise<CertificateRevokedEvent> {
+  let receipt;
+
+  try {
+    receipt = await provider.getTransactionReceipt(txHash);
+  } catch {
+    throw new HttpError(502, "CHAIN_ERROR", "Không đọc được giao dịch từ blockchain");
+  }
+
+  if (!receipt || receipt.status !== 1) {
+    throw new HttpError(
+      422,
+      "TX_INVALID",
+      "Giao dịch không tồn tại hoặc đã thất bại"
+    );
+  }
+
+  const event = registry.interface.getEvent("CertificateRevoked");
+  if (!event) {
+    throw new HttpError(500, "INTERNAL_ERROR", "ABI thiếu event CertificateRevoked");
+  }
+
+  const expectedIdHash = keccak256(toUtf8Bytes(certificateId));
+
+  for (const log of receipt.logs) {
+    if (log.address.toLowerCase() !== env.CONTRACT_ADDRESS.toLowerCase()) {
+      continue;
+    }
+
+    if (log.topics[0] !== event.topicHash) {
+      continue;
+    }
+
+    const parsed = registry.interface.parseLog(log);
+    if (!parsed) continue;
+
+    if (String(parsed.args.idHash).toLowerCase() === expectedIdHash.toLowerCase()) {
+      return {
+        blockNumber: receipt.blockNumber,
+        logIndex: log.index,
+        revokedAt: Number(parsed.args.revokedAt),
+      };
+    }
+  }
+
+  throw new HttpError(
+    422,
+    "TX_INVALID",
+    "Không tìm thấy sự kiện CertificateRevoked khớp chứng chỉ"
+  );
 }
 
 export async function verifyHashOnChain(fileHash: string): Promise<{

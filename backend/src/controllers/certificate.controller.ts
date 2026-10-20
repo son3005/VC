@@ -2,12 +2,29 @@ import type { NextFunction, Request, Response } from "express";
 import {
   certificateListQuerySchema,
   confirmCertificateSchema,
+  revokeCertificateSchema,
 } from "../schemas/certificate";
+import { certificateIdParamSchema } from "../schemas/public";
 import {
   confirmCertificate,
+  getIssuerCertificate,
   listIssuerCertificates,
+  revokeCertificate,
+  type CertificateActor,
 } from "../services/certificate.service";
 import { HttpError } from "../utils/http-error";
+
+function getActor(req: Request): CertificateActor {
+  if (!req.user) {
+    throw new HttpError(401, "UNAUTHORIZED", "Chưa đăng nhập");
+  }
+
+  return {
+    id: req.user.id,
+    role: req.user.role,
+    walletAddress: req.user.walletAddress,
+  };
+}
 
 export async function createCertificateController(
   req: Request,
@@ -46,6 +63,37 @@ export async function listCertificatesController(
       data: result.data,
       meta: result.meta,
     });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function getCertificateController(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const { id } = certificateIdParamSchema.parse(req.params);
+    const certificate = await getIssuerCertificate(id, getActor(req));
+
+    res.json({ success: true, data: certificate });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function revokeCertificateController(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const { id } = certificateIdParamSchema.parse(req.params);
+    const { txHash } = revokeCertificateSchema.parse(req.body);
+    const certificate = await revokeCertificate(id, txHash, getActor(req));
+
+    res.json({ success: true, data: certificate });
   } catch (error) {
     next(error);
   }

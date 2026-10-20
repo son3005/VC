@@ -1,0 +1,9 @@
+process.env.NODE_ENV = "test";
+process.env.MONGODB_URI = "mongodb://127.0.0.1:27017/verify_cert_test";
+process.env.MONGODB_DB = "verify_cert_test";
+process.env.JWT_SECRET = "test-secret-at-least-32-characters-long";
+process.env.SEPOLIA_RPC_URL = "http://127.0.0.1:8545";
+process.env.CONTRACT_ADDRESS = "0x15621cf7f8Ed3883Cf47207c0f74B9DD71fD97f4";
+process.env.DEPLOY_BLOCK = "11949469";
+process.env.PINATA_JWT = "test-pinata-jwt";
+process.env.FRONTEND_ORIGIN = "http://localhost:3000";
