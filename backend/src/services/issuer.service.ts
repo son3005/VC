@@ -4,6 +4,11 @@ import type { CreateIssuerInput } from "../schemas/issuer";
 import type { IssuerDTO, PaginationMeta } from "../types/api";
 import { HttpError } from "../utils/http-error";
 import {
+  CertificateService,
+  confirmCertificate,
+  listIssuerCertificates,
+} from "./certificate.service";
+import {
   findIssuerUpdatedEvent,
   getIssuerOnChain,
 } from "./chain.service";
@@ -183,3 +188,10 @@ export async function createIssuer(
 
   return toIssuerDTO(issuer);
 }
+
+export class IssuerService extends CertificateService {
+  confirmCertificate = confirmCertificate;
+  listIssuerCertificates = listIssuerCertificates;
+}
+
+export const issuerService = new IssuerService();

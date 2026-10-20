@@ -5,13 +5,8 @@ import {
   revokeCertificateSchema,
 } from "../schemas/certificate";
 import { certificateIdParamSchema } from "../schemas/public";
-import {
-  confirmCertificate,
-  getIssuerCertificate,
-  listIssuerCertificates,
-  revokeCertificate,
-  type CertificateActor,
-} from "../services/certificate.service";
+import type { CertificateActor } from "../services/certificate.service";
+import { issuerService } from "../services/issuer.service";
 import { HttpError } from "../utils/http-error";
 
 function getActor(req: Request): CertificateActor {
@@ -37,7 +32,10 @@ export async function createCertificateController(
     }
 
     const input = confirmCertificateSchema.parse(req.body);
-    const certificate = await confirmCertificate(input, req.issuer);
+    const certificate = await issuerService.confirmCertificate(
+      input,
+      req.issuer
+    );
 
     res.status(201).json({ success: true, data: certificate });
   } catch (error) {
@@ -56,7 +54,10 @@ export async function listCertificatesController(
     }
 
     const query = certificateListQuerySchema.parse(req.query);
-    const result = await listIssuerCertificates(req.issuer, query);
+    const result = await issuerService.listIssuerCertificates(
+      req.issuer,
+      query
+    );
 
     res.json({
       success: true,
@@ -75,7 +76,10 @@ export async function getCertificateController(
 ): Promise<void> {
   try {
     const { id } = certificateIdParamSchema.parse(req.params);
-    const certificate = await getIssuerCertificate(id, getActor(req));
+    const certificate = await issuerService.getIssuerCertificate(
+      id,
+      getActor(req)
+    );
 
     res.json({ success: true, data: certificate });
   } catch (error) {
@@ -91,7 +95,11 @@ export async function revokeCertificateController(
   try {
     const { id } = certificateIdParamSchema.parse(req.params);
     const { txHash } = revokeCertificateSchema.parse(req.body);
-    const certificate = await revokeCertificate(id, txHash, getActor(req));
+    const certificate = await issuerService.revokeCertificate(
+      id,
+      txHash,
+      getActor(req)
+    );
 
     res.json({ success: true, data: certificate });
   } catch (error) {

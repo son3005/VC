@@ -5,13 +5,7 @@ import {
   recentQuerySchema,
   verifyQuerySchema,
 } from "../schemas/public";
-import {
-  getPublicCertificate,
-  getPublicFilters,
-  listRecentCertificates,
-  searchPublicCertificates,
-  verifyCertificateHash,
-} from "../services/certificate.service";
+import { certificateService } from "../services/certificate.service";
 
 export async function searchPublicController(
   req: Request,
@@ -20,7 +14,7 @@ export async function searchPublicController(
 ): Promise<void> {
   try {
     const query = publicSearchQuerySchema.parse(req.query);
-    const result = await searchPublicCertificates(query);
+    const result = await certificateService.searchPublicCertificates(query);
 
     res.json({
       success: true,
@@ -39,7 +33,7 @@ export async function recentPublicController(
 ): Promise<void> {
   try {
     const query = recentQuerySchema.parse(req.query);
-    const data = await listRecentCertificates(query.limit);
+    const data = await certificateService.listRecentCertificates(query.limit);
     res.json({ success: true, data });
   } catch (error) {
     next(error);
@@ -53,7 +47,7 @@ export async function detailPublicController(
 ): Promise<void> {
   try {
     const { id } = certificateIdParamSchema.parse(req.params);
-    const certificate = await getPublicCertificate(id);
+    const certificate = await certificateService.getPublicCertificate(id);
     res.json({ success: true, data: certificate });
   } catch (error) {
     next(error);
@@ -67,7 +61,7 @@ export async function verifyPublicController(
 ): Promise<void> {
   try {
     const { hash } = verifyQuerySchema.parse(req.query);
-    const result = await verifyCertificateHash(hash);
+    const result = await certificateService.verifyCertificateHash(hash);
     res.json({ success: true, data: result });
   } catch (error) {
     next(error);
@@ -80,7 +74,7 @@ export async function filtersPublicController(
   next: NextFunction
 ): Promise<void> {
   try {
-    const data = await getPublicFilters();
+    const data = await certificateService.getPublicFilters();
     res.json({ success: true, data });
   } catch (error) {
     next(error);

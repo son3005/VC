@@ -582,3 +582,16 @@ export async function getPublicFilters(): Promise<{
     types: types as string[],
   };
 }
+
+export class CertificateService {
+  listAllCertificates = listAllCertificates;
+  getIssuerCertificate = getIssuerCertificate;
+  revokeCertificate = revokeCertificate;
+  searchPublicCertificates = searchPublicCertificates;
+  getPublicCertificate = getPublicCertificate;
+  listRecentCertificates = listRecentCertificates;
+  verifyCertificateHash = verifyCertificateHash;
+  getPublicFilters = getPublicFilters;
+}
+
+export const certificateService = new CertificateService();

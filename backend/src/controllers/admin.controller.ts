@@ -5,14 +5,8 @@ import {
   revokeCertificateSchema,
 } from "../schemas/certificate";
 import { certificateIdParamSchema } from "../schemas/public";
-import { getAdminStats } from "../services/admin.service";
-import {
-  getIssuerCertificate,
-  listAllCertificates,
-  revokeCertificate,
-  type CertificateActor,
-} from "../services/certificate.service";
-import { backfillEvents, getSyncStatus } from "../services/sync.service";
+import { adminService } from "../services/admin.service";
+import type { CertificateActor } from "../services/certificate.service";
 import { HttpError } from "../utils/http-error";
 
 function getAdminActor(req: Request): CertificateActor {
@@ -38,7 +32,7 @@ export async function syncStatusController(
   next: NextFunction
 ): Promise<void> {
   try {
-    const status = await getSyncStatus();
+    const status = await adminService.syncStatus();
     res.json({ success: true, data: status });
   } catch (error) {
     next(error);
@@ -52,7 +46,10 @@ export async function triggerSyncController(
 ): Promise<void> {
   try {
     const input = syncBodySchema.parse(req.body ?? {});
-    const result = await backfillEvents(input.fromBlock, input.toBlock);
+    const result = await adminService.syncEvents(
+      input.fromBlock,
+      input.toBlock
+    );
     res.json({ success: true, data: result });
   } catch (error) {
     next(error);
@@ -65,7 +62,7 @@ export async function adminStatsController(
   next: NextFunction
 ): Promise<void> {
   try {
-    const stats = await getAdminStats();
+    const stats = await adminService.getStats();
     res.json({ success: true, data: stats });
   } catch (error) {
     next(error);
@@ -79,7 +76,7 @@ export async function adminCertificatesController(
 ): Promise<void> {
   try {
     const query = adminCertificateListQuerySchema.parse(req.query);
-    const result = await listAllCertificates(query);
+    const result = await adminService.listAllCertificates(query);
 
     res.json({
       success: true,
@@ -98,7 +95,10 @@ export async function adminCertificateDetailController(
 ): Promise<void> {
   try {
     const { id } = certificateIdParamSchema.parse(req.params);
-    const certificate = await getIssuerCertificate(id, getAdminActor(req));
+    const certificate = await adminService.getIssuerCertificate(
+      id,
+      getAdminActor(req)
+    );
 
     res.json({ success: true, data: certificate });
   } catch (error) {
@@ -114,7 +114,7 @@ export async function adminRevokeCertificateController(
   try {
     const { id } = certificateIdParamSchema.parse(req.params);
     const { txHash } = revokeCertificateSchema.parse(req.body);
-    const certificate = await revokeCertificate(
+    const certificate = await adminService.revokeCertificate(
       id,
       txHash,
       getAdminActor(req)

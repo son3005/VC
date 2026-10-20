@@ -1,5 +1,11 @@
 import { Certificate, Issuer, User } from "../models";
 import type { CertificateType } from "../types/certificate";
+import {
+  createIssuer as createIssuerFn,
+  IssuerService,
+  listIssuers as listIssuersFn,
+} from "./issuer.service";
+import { backfillEvents, getSyncStatus } from "./sync.service";
 
 export interface AdminStats {
   certificates: {
@@ -72,3 +78,17 @@ export async function getAdminStats(): Promise<AdminStats> {
     })),
   };
 }
+
+/**
+ * Admin kế thừa toàn bộ nghiệp vụ issuer (cấp/thu hồi/xem chứng chỉ)
+ * và bổ sung quản trị hệ thống.
+ */
+export class AdminService extends IssuerService {
+  getStats = getAdminStats;
+  listIssuers = listIssuersFn;
+  createIssuer = createIssuerFn;
+  syncStatus = getSyncStatus;
+  syncEvents = backfillEvents;
+}
+
+export const adminService = new AdminService();

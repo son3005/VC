@@ -1,6 +1,6 @@
 import type { RequestHandler } from "express";
 import type { UserRole } from "../models";
-import { verifyToken } from "../services/auth.service";
+import { authService } from "../services/auth.service";
 import { HttpError } from "../utils/http-error";
 
 export const requireAuth: RequestHandler = (req, _res, next) => {
@@ -16,7 +16,7 @@ export const requireAuth: RequestHandler = (req, _res, next) => {
   }
 
   try {
-    const payload = verifyToken(token);
+    const payload = authService.verifyToken(token);
 
     req.user = {
       id: payload.sub,

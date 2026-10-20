@@ -1,6 +1,6 @@
 import path from "node:path";
 import type { NextFunction, Request, Response } from "express";
-import { pinFileToIPFS } from "../services/pinata.service";
+import { pinataService } from "../services/pinata.service";
 import { detectMime } from "../utils/file";
 import { sha256Buffer } from "../utils/hash";
 import { HttpError } from "../utils/http-error";
@@ -29,7 +29,7 @@ export async function uploadController(
       .replace(/[^\w.\-]/g, "_");
 
     const fileHash = sha256Buffer(req.file.buffer);
-    const pin = await pinFileToIPFS(
+    const pin = await pinataService.pinFileToIPFS(
       req.file.buffer,
       originalName,
       detected.mimeType

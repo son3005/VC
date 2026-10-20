@@ -291,3 +291,12 @@ export async function getSyncStatus(): Promise<{
     chainId: state.chainId,
   };
 }
+
+export class SyncService {
+  backfillEvents = backfillEvents;
+  start = startSync;
+  stop = stopSync;
+  getStatus = getSyncStatus;
+}
+
+export const syncService = new SyncService();

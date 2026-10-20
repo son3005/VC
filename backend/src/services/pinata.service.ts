@@ -61,3 +61,9 @@ export async function pinFileToIPFS(
     sizeBytes: json.PinSize ?? buffer.length,
   };
 }
+
+export class PinataService {
+  pinFileToIPFS = pinFileToIPFS;
+}
+
+export const pinataService = new PinataService();

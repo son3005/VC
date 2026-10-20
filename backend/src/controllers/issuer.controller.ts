@@ -3,7 +3,7 @@ import {
   createIssuerSchema,
   issuerListQuerySchema,
 } from "../schemas/issuer";
-import { createIssuer, listIssuers } from "../services/issuer.service";
+import { adminService } from "../services/admin.service";
 
 export async function listIssuersController(
   req: Request,
@@ -12,7 +12,7 @@ export async function listIssuersController(
 ): Promise<void> {
   try {
     const query = issuerListQuerySchema.parse(req.query);
-    const result = await listIssuers(query);
+    const result = await adminService.listIssuers(query);
 
     res.json({
       success: true,
@@ -31,7 +31,7 @@ export async function createIssuerController(
 ): Promise<void> {
   try {
     const input = createIssuerSchema.parse(req.body);
-    const issuer = await createIssuer(input);
+    const issuer = await adminService.createIssuer(input);
 
     res.status(201).json({
       success: true,

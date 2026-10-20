@@ -84,3 +84,11 @@ export function verifyToken(token: string): AuthTokenPayload {
     throw new HttpError(401, "UNAUTHORIZED", "Token không hợp lệ hoặc đã hết hạn");
   }
 }
+
+export class AuthService {
+  login = login;
+  getUserById = getUserById;
+  verifyToken = verifyToken;
+}
+
+export const authService = new AuthService();
