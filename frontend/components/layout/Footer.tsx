@@ -29,19 +29,21 @@ export function Footer() {
               Blockchain Ethereum Sepolia và mạng lưới phi tập trung IPFS, đảm bảo tính minh bạch,
               bảo mật và không thể làm giả.
             </p>
-            <div className="flex items-center gap-2 text-xs text-[#010E1C] bg-[#FFFDF7] p-2.5 rounded-xl border border-[#E3D5B8] w-fit">
-              <ShieldCheck className="w-4 h-4 text-[#E6AB42] shrink-0" />
-              <span>Smart Contract:</span>
-              <a
-                href={`${EXPLORER_URL}/address/${CONTRACT_ADDRESS}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="font-mono font-medium hover:text-[#E6AB42] underline flex items-center gap-1"
-              >
-                {shortenAddress(CONTRACT_ADDRESS, 6)}
-                <ExternalLink className="w-3 h-3" />
-              </a>
-            </div>
+            {CONTRACT_ADDRESS && (
+              <div className="flex items-center gap-2 text-xs text-[#010E1C] bg-[#FFFDF7] p-2.5 rounded-xl border border-[#E3D5B8] w-fit">
+                <ShieldCheck className="w-4 h-4 text-[#E6AB42] shrink-0" />
+                <span>Smart Contract:</span>
+                <a
+                  href={`${EXPLORER_URL}/address/${CONTRACT_ADDRESS}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-mono font-medium hover:text-[#E6AB42] underline flex items-center gap-1"
+                >
+                  {shortenAddress(CONTRACT_ADDRESS, 6)}
+                  <ExternalLink className="w-3 h-3" />
+                </a>
+              </div>
+            )}
           </div>
 
           {/* Col 2: Liên kết nhanh */}
