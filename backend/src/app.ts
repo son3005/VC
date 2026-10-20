@@ -6,6 +6,7 @@ import { ZodError } from "zod";
 import { env } from "./config/env";
 import { authRouter } from "./routes/auth.routes";
 import { healthRouter } from "./routes/health.routes";
+import { issuerRouter } from "./routes/issuer.routes";
 import { HttpError } from "./utils/http-error";
 
 const app = express();
@@ -46,6 +47,7 @@ app.get("/", (_req, res) => {
 });
 
 app.use("/api/auth", authRouter);
+app.use("/api/issuers", issuerRouter);
 app.use("/api", healthRouter);
 
 app.use((_req, res) => {
