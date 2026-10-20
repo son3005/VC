@@ -23,6 +23,7 @@
 | 13 | [cicd-plan.md](cicd-plan.md) | GitHub Actions, branch protection, deploy contract thủ công | ✅ |
 | 14 | [api-reference.md](api-reference.md) | Tài liệu API thực tế: auth, issuer, upload, certificate, public, admin, sync, mã lỗi | ✅ |
 | 15 | [class-diagram.md](class-diagram.md) | Class diagram service (Admin kế thừa Issuer), domain models, kiến trúc lớp | ✅ |
+| 16 | [frontend-gemini-plan.md](frontend-gemini-plan.md) | Plan triển khai frontend chi tiết cho Gemini 3.8 Flash: stack, API, page spec, issue flow, test, Vercel | ✅ |
 
 ### Cấu hình đã tạo
 
