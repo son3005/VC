@@ -23,8 +23,8 @@ services:
     # Render gọi endpoint này để kiểm tra service còn sống
     healthCheckPath: /api/health
 
-    # Tự deploy mỗi khi có commit mới lên main
-    autoDeployTrigger: commit
+    # Chỉ deploy khi GitHub checks (CI) xanh
+    autoDeployTrigger: checksPass
 
     envVars:
       # --- Bắt buộc, giá trị cố định ---

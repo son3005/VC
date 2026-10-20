@@ -1,0 +1,115 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  detect:
+    name: Detect modules
+    runs-on: ubuntu-latest
+    outputs:
+      frontend: ${{ steps.check.outputs.frontend }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check frontend scaffold
+        id: check
+        shell: bash
+        run: |
+          if [ -f frontend/package.json ]; then
+            echo "frontend=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "frontend=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  contracts:
+    name: Contracts
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: contracts
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: contracts/package-lock.json
+
+      - run: npm ci
+
+      - run: npx hardhat compile
+
+      - run: npx hardhat test
+        env:
+          HARDHAT_DISABLE_TELEMETRY_PROMPT: "true"
+          DEPLOYER_PRIVATE_KEY: "0x0000000000000000000000000000000000000000000000000000000000000001"
+
+  backend:
+    name: Backend
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      NODE_ENV: test
+      JWT_SECRET: test-secret-at-least-32-characters-long
+      MONGODB_URI: mongodb://127.0.0.1:27017/verify_cert_test
+      CONTRACT_ADDRESS: "0x15621cf7f8Ed3883Cf47207c0f74B9DD71fD97f4"
+      SEPOLIA_RPC_URL: http://127.0.0.1:8545
+      PINATA_JWT: test-pinata-jwt
+      FRONTEND_ORIGIN: http://localhost:3000
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - run: npm ci
+      - run: npm run build
+      - run: npm test
+
+  frontend:
+    name: Frontend
+    runs-on: ubuntu-latest
+    needs: detect
+    if: needs.detect.outputs.frontend == 'true'
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - run: npm ci
+      - run: npm run lint --if-present
+      - run: npm run build
+        env:
+          NEXT_PUBLIC_CHAIN_ID: "11155111"
+          NEXT_PUBLIC_CHAIN_ID_HEX: "0xaa36a7"
+          NEXT_PUBLIC_CHAIN_NAME: Sepolia
+          NEXT_PUBLIC_RPC_URL: https://ethereum-sepolia-rpc.publicnode.com
+          NEXT_PUBLIC_EXPLORER_URL: https://sepolia.etherscan.io
+          NEXT_PUBLIC_CONTRACT_ADDRESS: "0x15621cf7f8Ed3883Cf47207c0f74B9DD71fD97f4"
+          NEXT_PUBLIC_DEPLOY_BLOCK: "11949469"
+          NEXT_PUBLIC_API_URL: https://example.com
+          NEXT_PUBLIC_IPFS_GATEWAY: https://gateway.pinata.cloud/ipfs/

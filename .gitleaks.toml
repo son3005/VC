@@ -1,0 +1,9 @@
+# Gitleaks allowlist — chỉ chứa placeholder công khai, không phải secret thật.
+# Nếu từng commit secret thật, phải rotate key và xóa khỏi lịch sử; đừng thêm vào đây.
+
+[allowlist]
+description = "Public test placeholders"
+paths = [
+  '''contracts/\.env\.example''',
+  '''docs/cicd-plan\.md''',
+]
