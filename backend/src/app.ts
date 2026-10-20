@@ -2,8 +2,11 @@ import express, { type ErrorRequestHandler } from "express";
 import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
+import { ZodError } from "zod";
 import { env } from "./config/env";
+import { authRouter } from "./routes/auth.routes";
 import { healthRouter } from "./routes/health.routes";
+import { HttpError } from "./utils/http-error";
 
 const app = express();
 
@@ -42,6 +45,7 @@ app.get("/", (_req, res) => {
   });
 });
 
+app.use("/api/auth", authRouter);
 app.use("/api", healthRouter);
 
 app.use((_req, res) => {
@@ -55,20 +59,36 @@ app.use((_req, res) => {
 });
 
 const errorHandler: ErrorRequestHandler = (err, req, res, _next) => {
-  const message = err instanceof Error ? err.message : "Unknown error";
-  console.error(`[error] ${req.method} ${req.originalUrl}: ${message}`);
+  if (err instanceof ZodError) {
+    res.status(400).json({
+      success: false,
+      error: {
+        code: "VALIDATION_ERROR",
+        message: "Dữ liệu không hợp lệ",
+        details: err.issues,
+      },
+    });
+    return;
+  }
 
-  const status =
-    typeof (err as { status?: unknown }).status === "number"
-      ? (err as { status: number }).status
-      : 500;
+  const isHttpError = err instanceof HttpError;
+  const status = isHttpError ? err.status : 500;
+  const code = isHttpError ? err.code : "INTERNAL_ERROR";
+  const rawMessage = err instanceof Error ? err.message : "Unknown error";
+
+  if (status >= 500) {
+    console.error(`[error] ${req.method} ${req.originalUrl}: ${rawMessage}`);
+  }
 
   res.status(status).json({
     success: false,
     error: {
-      code: "INTERNAL_ERROR",
+      code,
       message:
-        env.NODE_ENV === "production" ? "Đã có lỗi xảy ra" : message,
+        status >= 500 && env.NODE_ENV === "production"
+          ? "Đã có lỗi xảy ra"
+          : rawMessage,
+      details: isHttpError ? err.details : undefined,
     },
   });
 };
