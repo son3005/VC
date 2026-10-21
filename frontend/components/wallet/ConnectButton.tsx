@@ -1,18 +1,49 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useWallet } from '@/hooks/useWallet';
 import { Button } from '@/components/ui/Button';
 import { shortenAddress } from '@/lib/format';
-import { Wallet, AlertTriangle, ExternalLink } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import {
+  Wallet,
+  AlertTriangle,
+  ExternalLink,
+  ChevronDown,
+  LogOut,
+  CheckCircle2,
+} from 'lucide-react';
 
 export function ConnectButton({ className }: { className?: string }) {
   const [mounted, setMounted] = useState(false);
-  const { address, isConnecting, isCorrectNetwork, connect, switchToSepolia } = useWallet();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  const {
+    address,
+    isConnecting,
+    isCorrectNetwork,
+    connect,
+    switchToSepolia,
+    disconnect,
+  } = useWallet();
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [menuOpen]);
 
   if (!mounted) {
     return (
@@ -75,12 +106,53 @@ export function ConnectButton({ className }: { className?: string }) {
 
   // Case 4: Đã kết nối đúng mạng Sepolia
   return (
-    <div
-      className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[#FFFDF7] border border-[#E3D5B8] text-xs font-semibold text-[#010E1C] shadow-2xs"
-      title={`Ví: ${address} (Mạng Sepolia)`}
-    >
-      <span className="w-2 h-2 rounded-full bg-[#E6AB42] animate-pulse" />
-      <span className="font-mono">{shortenAddress(address, 4)}</span>
+    <div ref={menuRef} className={cn('relative inline-flex', className)}>
+      <button
+        type="button"
+        onClick={() => setMenuOpen((open) => !open)}
+        className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[#FFFDF7] border border-[#E3D5B8] text-xs font-semibold text-[#010E1C] shadow-2xs hover:border-[#E6AB42] transition-colors"
+        title={`Ví: ${address} (Mạng Sepolia)`}
+        aria-haspopup="menu"
+        aria-expanded={menuOpen}
+      >
+        <span className="w-2 h-2 rounded-full bg-[#E6AB42]" />
+        <span className="font-mono">{shortenAddress(address, 4)}</span>
+        <ChevronDown
+          className={cn(
+            'w-3.5 h-3.5 text-[#6F5C4A] transition-transform',
+            menuOpen && 'rotate-180'
+          )}
+        />
+      </button>
+
+      {menuOpen && (
+        <div
+          role="menu"
+          className="absolute right-0 top-full mt-2 w-72 z-50 rounded-2xl border border-[#E3D5B8] bg-[#FFFDF7] shadow-xl overflow-hidden animate-in fade-in"
+        >
+          <div className="p-4 border-b border-[#E3D5B8]/70 space-y-1.5">
+            <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider text-[#6F5C4A]">
+              <CheckCircle2 className="w-3.5 h-3.5 text-[#E6AB42]" />
+              <span>Ví đã kết nối</span>
+            </div>
+            <p className="font-mono text-[11px] text-[#010E1C] break-all">{address}</p>
+            <p className="text-[11px] text-[#6F5C4A]">Mạng: Sepolia (11155111)</p>
+          </div>
+
+          <button
+            type="button"
+            role="menuitem"
+            onClick={async () => {
+              await disconnect();
+              setMenuOpen(false);
+            }}
+            className="w-full flex items-center gap-2 px-4 py-3 text-sm font-semibold text-[#B23F4A] hover:bg-[#E6606A]/10 transition-colors"
+          >
+            <LogOut className="w-4 h-4" />
+            <span>Ngắt kết nối ví</span>
+          </button>
+        </div>
+      )}
     </div>
   );
 }

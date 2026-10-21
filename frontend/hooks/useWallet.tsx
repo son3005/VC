@@ -12,6 +12,7 @@ export interface WalletContextType {
   isCorrectNetwork: boolean;
   connect: () => Promise<void>;
   switchToSepolia: () => Promise<void>;
+  disconnect: () => Promise<void>;
   checkConnection: () => Promise<void>;
 }
 
@@ -157,6 +158,24 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const disconnect = async () => {
+    // MetaMask supports wallet_revokePermissions; other wallets may reject it.
+    try {
+      if (typeof window !== 'undefined' && window.ethereum?.request) {
+        await window.ethereum.request({
+          method: 'wallet_revokePermissions',
+          params: [{ eth_accounts: {} }],
+        });
+      }
+    } catch {
+      // Ignore unsupported wallets. Local state is still cleared below.
+    } finally {
+      setAddress(null);
+      setChainId(null);
+      setError(null);
+    }
+  };
+
   const value: WalletContextType = {
     address,
     chainId,
@@ -165,6 +184,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
     isCorrectNetwork,
     connect,
     switchToSepolia,
+    disconnect,
     checkConnection,
   };
 
