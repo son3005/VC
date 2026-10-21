@@ -35,12 +35,12 @@ export function Header() {
         <div className="flex items-center justify-between h-18">
           {/* Brand Logo */}
           <Link href="/" className="flex items-center gap-3 group">
-            <div className="w-10 h-10 relative flex items-center justify-center transition-transform group-hover:scale-105">
+            <div className="w-14 h-14 relative flex items-center justify-center transition-transform group-hover:scale-105">
               <Image
                 src="/logo.png"
                 alt={`${SCHOOL_NAME} logo`}
-                width={38}
-                height={38}
+                width={56}
+                height={56}
                 priority
               />
             </div>

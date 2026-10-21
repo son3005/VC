@@ -17,8 +17,8 @@ export function Footer() {
               <Image
                 src="/logo.png"
                 alt={`${SCHOOL_NAME} logo`}
-                width={32}
-                height={32}
+                width={44}
+                height={44}
               />
               <span className="font-serif font-bold text-lg text-[#010E1C]">
                 {SCHOOL_NAME}

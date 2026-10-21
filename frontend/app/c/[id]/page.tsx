@@ -186,8 +186,8 @@ export default function CertificateDetailPage() {
           {/* Phần đầu: Logo trường & Huy hiệu trạng thái */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#E3D5B8]/80 pb-6 mb-8">
             <div className="flex items-center gap-3.5">
-              <div className="w-14 h-14 relative flex items-center justify-center p-1 bg-[#FAF4DF] rounded-2xl border border-[#E3D5B8] shadow-2xs">
-                <Image src="/logo.png" alt={`${SCHOOL_NAME} emblem`} width={44} height={44} priority />
+              <div className="w-20 h-20 relative flex items-center justify-center p-1 bg-[#FAF4DF] rounded-2xl border border-[#E3D5B8] shadow-2xs">
+                <Image src="/logo.png" alt={`${SCHOOL_NAME} emblem`} width={64} height={64} priority />
               </div>
               <div>
                 <p className="text-xs uppercase font-bold tracking-widest text-[#A48B73]">
