@@ -39,6 +39,20 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
+export function classifyGpa(gpa: number): string {
+  if (gpa >= 3.6) return 'Xuất sắc';
+  if (gpa >= 3.2) return 'Giỏi';
+  if (gpa >= 2.5) return 'Khá';
+  if (gpa >= 2.0) return 'Trung bình';
+  return 'Yếu';
+}
+
+function formatDateInput(value: string): string {
+  const [year, month, day] = value.split('-');
+  if (!year || !month || !day) return value;
+  return `${day}/${month}/${year}`;
+}
+
 export function IssueWizard() {
   const { user } = useAuth();
   const { address, isCorrectNetwork, switchToSepolia } = useWallet();
@@ -57,7 +71,6 @@ export function IssueWizard() {
     major: 'Kỹ thuật phần mềm',
     graduationYear: 2026,
     gpa: 3.5,
-    classification: 'Giỏi',
     studyMode: 'Chính quy',
     thesisTitle: '',
   });
@@ -79,7 +92,6 @@ export function IssueWizard() {
     totalCredits: 130,
     completedCredits: 120,
     gpa: '3.52',
-    gradeScale: '4' as '10' | '4' | 'letter',
   });
 
   const [otherDetails, setOtherDetails] = useState({
@@ -122,6 +134,17 @@ export function IssueWizard() {
     setCertId(prefixMap[newType]);
   };
 
+  const handleCourseGradeScaleChange = (
+    gradeScale: '10' | '4' | 'letter'
+  ) => {
+    setCourseDetails((prev) => ({
+      ...prev,
+      gradeScale,
+      grade: gradeScale === 'letter' ? 'A' : gradeScale === '4' ? '3.5' : '8.5',
+      grade4: gradeScale === '10' ? '3.5' : '',
+    }));
+  };
+
   // Làm sạch và ép kiểu dữ liệu gửi Backend API
   const getActiveDetails = () => {
     switch (certType) {
@@ -131,7 +154,7 @@ export function IssueWizard() {
           major: degreeDetails.major.trim(),
           graduationYear: Number(degreeDetails.graduationYear),
           gpa: Number(degreeDetails.gpa),
-          classification: degreeDetails.classification.trim(),
+          classification: classifyGpa(Number(degreeDetails.gpa)),
           studyMode: degreeDetails.studyMode.trim() || undefined,
           thesisTitle: degreeDetails.thesisTitle.trim() || undefined,
         };
@@ -167,7 +190,7 @@ export function IssueWizard() {
           programName: creditDetails.programName.trim(),
           totalCredits: Number(creditDetails.totalCredits),
           completedCredits: Number(creditDetails.completedCredits),
-          gradeScale: creditDetails.gradeScale,
+          gradeScale: '4',
           gpa:
             creditDetails.gpa !== '' && !isNaN(Number(creditDetails.gpa))
               ? Number(creditDetails.gpa)
@@ -178,10 +201,14 @@ export function IssueWizard() {
           title: otherDetails.title.trim(),
           description: otherDetails.description.trim(),
           organizer: otherDetails.organizer.trim() || undefined,
-          eventDate: otherDetails.eventDate.trim() || undefined,
+          eventDate: otherDetails.eventDate
+            ? formatDateInput(otherDetails.eventDate)
+            : undefined,
           role: otherDetails.role.trim() || undefined,
           result: otherDetails.result.trim() || undefined,
-          validUntil: otherDetails.validUntil.trim() || undefined,
+          validUntil: otherDetails.validUntil
+            ? formatDateInput(otherDetails.validUntil)
+            : undefined,
         };
     }
   };
@@ -568,18 +595,11 @@ export function IssueWizard() {
                     error={formErrors.degree_gpa}
                   />
 
-                  <Select
-                    label="Xếp loại tốt nghiệp"
-                    value={degreeDetails.classification}
-                    onChange={(e) =>
-                      setDegreeDetails({ ...degreeDetails, classification: e.target.value })
-                    }
-                    options={[
-                      { value: 'Xuất sắc', label: 'Xuất sắc' },
-                      { value: 'Giỏi', label: 'Giỏi' },
-                      { value: 'Khá', label: 'Khá' },
-                      { value: 'Trung bình', label: 'Trung bình' },
-                    ]}
+                  <Input
+                    label="Xếp loại tốt nghiệp (tự động)"
+                    value={classifyGpa(Number(degreeDetails.gpa))}
+                    readOnly
+                    helperText="Tự động theo GPA: ≥3.6 Xuất sắc · ≥3.2 Giỏi · ≥2.5 Khá · ≥2.0 Trung bình"
                   />
 
                   <Input
@@ -646,10 +666,9 @@ export function IssueWizard() {
                     label="Thang điểm đánh giá"
                     value={courseDetails.gradeScale}
                     onChange={(e) =>
-                      setCourseDetails({
-                        ...courseDetails,
-                        gradeScale: e.target.value as '10' | '4' | 'letter',
-                      })
+                      handleCourseGradeScaleChange(
+                        e.target.value as '10' | '4' | 'letter'
+                      )
                     }
                     options={[
                       { value: '10', label: 'Thang điểm 10 (0 - 10)' },
@@ -681,6 +700,12 @@ export function IssueWizard() {
                       setCourseDetails({ ...courseDetails, grade4: e.target.value })
                     }
                     placeholder="3.5"
+                    disabled={courseDetails.gradeScale !== '10'}
+                    helperText={
+                      courseDetails.gradeScale === '10'
+                        ? 'Quy đổi sang hệ 4 nếu có'
+                        : 'Chỉ áp dụng khi dùng thang điểm 10'
+                    }
                   />
 
                   <Input
@@ -745,22 +770,6 @@ export function IssueWizard() {
                       })
                     }
                     error={formErrors.credit_completedCredits}
-                  />
-
-                  <Select
-                    label="Thang điểm đánh giá chung"
-                    value={creditDetails.gradeScale}
-                    onChange={(e) =>
-                      setCreditDetails({
-                        ...creditDetails,
-                        gradeScale: e.target.value as '10' | '4' | 'letter',
-                      })
-                    }
-                    options={[
-                      { value: '4', label: 'Thang điểm 4 (0 - 4.0)' },
-                      { value: '10', label: 'Thang điểm 10 (0 - 10)' },
-                      { value: 'letter', label: 'Thang điểm chữ (A, B+,...)' },
-                    ]}
                   />
 
                   <Input
@@ -839,11 +848,12 @@ export function IssueWizard() {
 
                   <Input
                     label="Thời hạn giá trị (Tùy chọn)"
+                    type="date"
                     value={otherDetails.validUntil}
                     onChange={(e) =>
                       setOtherDetails({ ...otherDetails, validUntil: e.target.value })
                     }
-                    placeholder="Vĩnh viễn"
+                    helperText="Để trống nếu chứng nhận có giá trị vĩnh viễn"
                   />
                 </div>
               )}
