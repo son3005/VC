@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider } from '@/hooks/useAuth';
 import { WalletProvider } from '@/hooks/useWallet';
+import { GlobalLoading } from '@/components/ui/GlobalLoading';
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(
@@ -25,6 +26,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
       <AuthProvider>
         <WalletProvider>
           {children}
+          <GlobalLoading />
           <Toaster
         position="top-right"
         toastOptions={{

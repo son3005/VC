@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { BrowserProvider } from 'ethers';
 import { CHAIN_ID, CHAIN_ID_HEX, CHAIN_NAME, RPC_URL, EXPLORER_URL } from '@/lib/constants';
+import { beginLoading, endLoading } from '@/lib/loading-store';
 
 export interface WalletContextType {
   address: string | null;
@@ -93,6 +94,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
       throw new Error('NO_METAMASK');
     }
 
+    beginLoading('Đang kết nối ví MetaMask...');
     setIsConnecting(true);
     try {
       const provider = new BrowserProvider(window.ethereum);
@@ -110,6 +112,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
       }
       throw err;
     } finally {
+      endLoading();
       setIsConnecting(false);
     }
   };
@@ -121,6 +124,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
       throw new Error('NO_METAMASK');
     }
 
+    beginLoading('Đang chuyển sang mạng Sepolia...');
     try {
       await window.ethereum.request({
         method: 'wallet_switchEthereumChain',
@@ -155,6 +159,8 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
         setError('Lỗi khi chuyển sang mạng Sepolia.');
         throw switchError;
       }
+    } finally {
+      endLoading();
     }
   };
 

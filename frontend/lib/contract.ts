@@ -1,6 +1,7 @@
 import { BrowserProvider, Contract, JsonRpcProvider } from 'ethers';
 import abi from './abi/CertificateRegistry.json';
 import { CONTRACT_ADDRESS, RPC_URL, CHAIN_ID, CHAIN_ID_HEX } from './constants';
+import { beginLoading, endLoading, updateLoadingMessage } from './loading-store';
 
 export { CONTRACT_ADDRESS };
 
@@ -42,7 +43,7 @@ export async function assertCorrectNetworkAndSigner(expectedWallet?: string | nu
     const signerAddress = await signer.getAddress();
     if (signerAddress.toLowerCase() !== expectedWallet.toLowerCase()) {
       throw new Error(
-        `Ví MetaMask đang chọn (${signerAddress}) không khớp với ví tài khoản đã đăng nhập (${expectedWallet}).`
+        'Ví MetaMask đang chọn không khớp với ví tài khoản đã đăng nhập.'
       );
     }
   }
@@ -53,27 +54,45 @@ export async function issueCertificateOnChain(
   fileHash: string,
   cid: string
 ): Promise<string> {
-  const contract = await getWriteContract();
-  const tx = await contract.issueCertificate(certificateId, fileHash, cid);
-  const receipt = await tx.wait();
-  return receipt.hash;
+  beginLoading('Đang chờ ký giao dịch cấp chứng chỉ...');
+  try {
+    const contract = await getWriteContract();
+    const tx = await contract.issueCertificate(certificateId, fileHash, cid);
+    updateLoadingMessage('Đang chờ xác nhận giao dịch trên Sepolia...');
+    const receipt = await tx.wait();
+    return receipt.hash;
+  } finally {
+    endLoading();
+  }
 }
 
 export async function revokeCertificateOnChain(
   certificateId: string
 ): Promise<string> {
-  const contract = await getWriteContract();
-  const tx = await contract.revokeCertificate(certificateId);
-  const receipt = await tx.wait();
-  return receipt.hash;
+  beginLoading('Đang chờ ký giao dịch thu hồi...');
+  try {
+    const contract = await getWriteContract();
+    const tx = await contract.revokeCertificate(certificateId);
+    updateLoadingMessage('Đang chờ xác nhận giao dịch trên Sepolia...');
+    const receipt = await tx.wait();
+    return receipt.hash;
+  } finally {
+    endLoading();
+  }
 }
 
 export async function addIssuerOnChain(
   wallet: string,
   name: string
 ): Promise<string> {
-  const contract = await getWriteContract();
-  const tx = await contract.addIssuer(wallet, name);
-  const receipt = await tx.wait();
-  return receipt.hash;
+  beginLoading('Đang chờ ký giao dịch thêm đơn vị cấp...');
+  try {
+    const contract = await getWriteContract();
+    const tx = await contract.addIssuer(wallet, name);
+    updateLoadingMessage('Đang chờ xác nhận giao dịch trên Sepolia...');
+    const receipt = await tx.wait();
+    return receipt.hash;
+  } finally {
+    endLoading();
+  }
 }
