@@ -3,6 +3,21 @@
 [![CI](https://github.com/son3005/VC/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/son3005/VC/actions/workflows/ci.yml)
 [![Security](https://github.com/son3005/VC/actions/workflows/security.yml/badge.svg?branch=main)](https://github.com/son3005/VC/actions/workflows/security.yml)
 
+### Công nghệ sử dụng
+
+[![Next.js](https://img.shields.io/badge/Next.js-15-000000?style=for-the-badge&logo=nextdotjs&logoColor=white)](https://nextjs.org/)
+[![React](https://img.shields.io/badge/React-19-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://react.dev/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4-06B6D4?style=for-the-badge&logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
+[![Node.js](https://img.shields.io/badge/Node.js-20%2B-5FA04E?style=for-the-badge&logo=nodedotjs&logoColor=white)](https://nodejs.org/)
+[![Express](https://img.shields.io/badge/Express-4-000000?style=for-the-badge&logo=express&logoColor=white)](https://expressjs.com/)
+[![MongoDB](https://img.shields.io/badge/MongoDB-Atlas-47A248?style=for-the-badge&logo=mongodb&logoColor=white)](https://www.mongodb.com/atlas)
+[![Solidity](https://img.shields.io/badge/Solidity-0.8-363636?style=for-the-badge&logo=solidity&logoColor=white)](https://soliditylang.org/)
+[![Hardhat](https://img.shields.io/badge/Hardhat-2-FFF100?style=for-the-badge&logo=hardhat&logoColor=black)](https://hardhat.org/)
+[![Ethereum Sepolia](https://img.shields.io/badge/Ethereum-Sepolia-3C3C3D?style=for-the-badge&logo=ethereum&logoColor=white)](https://sepolia.etherscan.io/)
+[![IPFS](https://img.shields.io/badge/IPFS-Pinata-65C2CB?style=for-the-badge&logo=ipfs&logoColor=white)](https://ipfs.tech/)
+[![Vercel](https://img.shields.io/badge/Vercel-Frontend-000000?style=for-the-badge&logo=vercel&logoColor=white)](https://vercel.com/)
+
 Hệ thống cấp, lưu trữ và xác thực văn bằng/chứng chỉ của **Raccoon University** trên Ethereum Sepolia.
 
 PDF là artifact gốc. SHA-256 của PDF được neo on-chain, metadata lưu MongoDB, file gốc lưu IPFS. Người xem có thể tra cứu bằng mã chứng chỉ, họ tên, MSSV hoặc xác thực trực tiếp file PDF.
