@@ -67,14 +67,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                     Super Admin
                   </span>
                 </div>
-                <p className="text-xs text-[#6F5C4A]">
+                <div className="text-xs text-[#6F5C4A]">
                   Tài khoản: <strong className="text-[#010E1C]">{user.displayName || user.email}</strong>
                   {user.walletAddress && (
                     <span className="ml-2 inline-flex items-center gap-1">
                       (Ví Admin: <WalletBadge address={user.walletAddress} />)
                     </span>
                   )}
-                </p>
+                </div>
               </div>
             </div>
 

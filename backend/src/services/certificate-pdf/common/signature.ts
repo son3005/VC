@@ -33,8 +33,8 @@ export function drawSignature(
     .fontSize(7)
     .text("Đơn vị cấp", 42, y + 53, { width: 190 });
 
-  doc.image(path.join(__dirname, "..", "assets", "seal.png"), width / 2 - 32, y + 10, {
-    fit: [64, 64],
+  doc.image(path.join(__dirname, "..", "assets", "seal.png"), width / 2 - 28, y + 12, {
+    fit: [56, 56],
   });
 
   doc
@@ -47,8 +47,8 @@ export function drawSignature(
     });
 
   doc
-    .moveTo(width - 200, y + 64)
-    .lineTo(width - 74, y + 64)
+    .moveTo(width - 200, y + 56)
+    .lineTo(width - 74, y + 56)
     .lineWidth(0.5)
     .strokeColor(COLORS.muted)
     .stroke();
@@ -57,7 +57,7 @@ export function drawSignature(
     .fillColor(COLORS.muted)
     .font(FONT.body)
     .fontSize(6.5)
-    .text("(Ký, đóng dấu)", width - 232, y + 68, {
+    .text("(Ký, đóng dấu)", width - 232, y + 60, {
       width: 190,
       align: "center",
     });

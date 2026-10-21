@@ -27,7 +27,7 @@ export function WalletBadge({
   };
 
   return (
-    <div
+    <span
       className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#FAF4DF] border border-[#E3D5B8] text-xs font-mono text-[#010E1C] ${className}`}
     >
       <span>{shortenAddress(address, 4)}</span>
@@ -53,6 +53,6 @@ export function WalletBadge({
           <ExternalLink className="w-3 h-3" />
         </a>
       )}
-    </div>
+    </span>
   );
 }
