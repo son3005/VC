@@ -8,6 +8,7 @@ import { Container } from './Container';
 import { Button } from '@/components/ui/Button';
 import { ConnectButton } from '@/components/wallet/ConnectButton';
 import { useAuth } from '@/hooks/useAuth';
+import { SCHOOL_NAME } from '@/lib/constants';
 import { LogIn, Menu, X, LogOut, UserCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -36,8 +37,8 @@ export function Header() {
           <Link href="/" className="flex items-center gap-3 group">
             <div className="w-10 h-10 relative flex items-center justify-center transition-transform group-hover:scale-105">
               <Image
-                src="/logo.svg"
-                alt="Logo Xác thực Văn bằng"
+                src="/logo.png"
+                alt={`${SCHOOL_NAME} logo`}
                 width={38}
                 height={38}
                 priority
@@ -45,7 +46,7 @@ export function Header() {
             </div>
             <div className="flex flex-col">
               <span className="font-serif font-bold text-lg leading-tight text-[#010E1C] tracking-tight">
-                Xác Thực Văn Bằng
+                {SCHOOL_NAME}
               </span>
               <span className="text-[11px] font-medium text-[#6F5C4A] tracking-wider uppercase">
                 Blockchain Registry

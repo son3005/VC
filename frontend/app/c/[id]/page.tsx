@@ -15,7 +15,7 @@ import { Skeleton } from '@/components/ui/Skeleton';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { api, ApiRequestError } from '@/lib/api';
 import { formatDateOnly, shortenAddress } from '@/lib/format';
-import { CERTIFICATE_TYPE_LABELS, EXPLORER_URL } from '@/lib/constants';
+import { CERTIFICATE_TYPE_LABELS, EXPLORER_URL, SCHOOL_NAME } from '@/lib/constants';
 import {
   ShieldCheck,
   AlertTriangle,
@@ -187,14 +187,14 @@ export default function CertificateDetailPage() {
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#E3D5B8]/80 pb-6 mb-8">
             <div className="flex items-center gap-3.5">
               <div className="w-14 h-14 relative flex items-center justify-center p-1 bg-[#FAF4DF] rounded-2xl border border-[#E3D5B8] shadow-2xs">
-                <Image src="/logo.svg" alt="Emblem" width={44} height={44} priority />
+                <Image src="/logo.png" alt={`${SCHOOL_NAME} emblem`} width={44} height={44} priority />
               </div>
               <div>
                 <p className="text-xs uppercase font-bold tracking-widest text-[#A48B73]">
                   Hồ sơ văn bằng chính thức
                 </p>
                 <h2 className="font-serif font-bold text-xl sm:text-2xl text-[#010E1C]">
-                  {cert.issuerName || 'Trường Đại học'}
+                  {SCHOOL_NAME}
                 </h2>
               </div>
             </div>

@@ -1,3 +1,6 @@
+export const SCHOOL_NAME = 'Raccoon University';
+export const SCHOOL_TAGLINE = 'Learn & Forage';
+
 export const CHAIN_ID = Number(process.env.NEXT_PUBLIC_CHAIN_ID || '11155111');
 export const CHAIN_ID_HEX = process.env.NEXT_PUBLIC_CHAIN_ID_HEX || '0xaa36a7';
 export const CHAIN_NAME = process.env.NEXT_PUBLIC_CHAIN_NAME || 'Sepolia';

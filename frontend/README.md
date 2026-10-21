@@ -1,4 +1,4 @@
-# Cổng Tra Cứu & Xác Thực Văn Bằng Đại Học Trên Blockchain (Frontend)
+# Raccoon University — Cổng Tra Cứu & Xác Thực Văn Bằng (Frontend)
 
 Hệ thống giao diện Web3 hiện đại phục vụ quản lý, phát hành và xác thực văn bằng chứng chỉ đại học minh bạch, chống làm giả dựa trên nền tảng **Ethereum Sepolia Blockchain** và mạng lưu trữ phi tập trung **IPFS**.
 

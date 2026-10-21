@@ -38,7 +38,7 @@ export default function LoginPage() {
         <div className="p-8 sm:p-10 rounded-3xl border-2 border-[#E3D5B8] bg-[#FFFDF7] shadow-md space-y-6">
           <div className="text-center space-y-3">
             <div className="w-14 h-14 mx-auto relative flex items-center justify-center p-1 bg-[#FAF4DF] rounded-2xl border border-[#E3D5B8] shadow-2xs">
-              <Image src="/logo.svg" alt="Logo" width={42} height={42} priority />
+              <Image src="/logo.png" alt="Raccoon University logo" width={42} height={42} priority />
             </div>
 
             <div className="space-y-1">

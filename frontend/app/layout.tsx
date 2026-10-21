@@ -4,6 +4,7 @@ import './globals.css';
 import { Providers } from './providers';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
+import { SCHOOL_NAME } from '@/lib/constants';
 
 const beVietnamPro = Be_Vietnam_Pro({
   weight: ['300', '400', '500', '600', '700'],
@@ -28,19 +29,19 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   title: {
-    default: 'Xác Thực Văn Bằng Blockchain — Verify Certification',
-    template: '%s | Xác Thực Văn Bằng Blockchain',
+    default: `${SCHOOL_NAME} — Xác thực văn bằng`,
+    template: `%s | ${SCHOOL_NAME}`,
   },
   description:
-    'Hệ thống quản lý, cấp phát và xác minh văn bằng chứng chỉ minh bạch, chống làm giả dựa trên Ethereum Sepolia Blockchain và IPFS.',
+    'Hệ thống quản lý, cấp phát và xác minh văn bằng chứng chỉ của Raccoon University trên Ethereum Sepolia và IPFS.',
   icons: {
-    icon: '/logo.svg',
+    icon: '/logo.png',
   },
   openGraph: {
-    title: 'Xác Thực Văn Bằng Blockchain — Ethereum Sepolia & IPFS',
+    title: `${SCHOOL_NAME} — Xác thực văn bằng trên Blockchain`,
     description:
-      'Hệ thống quản lý, cấp phát và xác minh văn bằng chứng chỉ minh bạch, chống làm giả dựa trên Ethereum Sepolia Blockchain và IPFS.',
-    siteName: 'Hệ thống Xác thực Văn bằng Blockchain',
+      'Hệ thống quản lý, cấp phát và xác minh văn bằng chứng chỉ của Raccoon University trên Ethereum Sepolia và IPFS.',
+    siteName: SCHOOL_NAME,
     locale: 'vi_VN',
     type: 'website',
   },

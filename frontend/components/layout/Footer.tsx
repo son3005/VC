@@ -2,7 +2,7 @@ import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Container } from './Container';
-import { CONTRACT_ADDRESS, EXPLORER_URL } from '@/lib/constants';
+import { CONTRACT_ADDRESS, EXPLORER_URL, SCHOOL_NAME } from '@/lib/constants';
 import { shortenAddress } from '@/lib/format';
 import { ExternalLink, ShieldCheck } from 'lucide-react';
 
@@ -15,13 +15,13 @@ export function Footer() {
           <div className="md:col-span-2 space-y-4">
             <div className="flex items-center gap-3">
               <Image
-                src="/logo.svg"
-                alt="Logo Xác thực Văn bằng"
+                src="/logo.png"
+                alt={`${SCHOOL_NAME} logo`}
                 width={32}
                 height={32}
               />
               <span className="font-serif font-bold text-lg text-[#010E1C]">
-                Xác Thực Văn Bằng Blockchain
+                {SCHOOL_NAME}
               </span>
             </div>
             <p className="text-sm max-w-md leading-relaxed text-[#6F5C4A]">
@@ -97,7 +97,7 @@ export function Footer() {
         </div>
 
         <div className="pt-8 border-t border-[#E3D5B8] flex flex-col sm:flex-row items-center justify-between gap-4 text-xs">
-          <p>© {new Date().getFullYear()} Verify Certification. Tất cả quyền được bảo lưu.</p>
+          <p>© {new Date().getFullYear()} {SCHOOL_NAME}. Tất cả quyền được bảo lưu.</p>
           <p className="text-[#A48B73]">
             Mạng thử nghiệm: <span className="font-semibold text-[#010E1C]">Ethereum Sepolia</span> (11155111)
           </p>

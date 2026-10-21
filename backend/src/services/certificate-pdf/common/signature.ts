@@ -1,3 +1,4 @@
+import path from "node:path";
 import type { CertificatePdfInput } from "../types";
 import { COLORS, FONT, PAGE, formatDate } from "./layout";
 
@@ -32,38 +33,9 @@ export function drawSignature(
     .fontSize(7)
     .text("Đơn vị cấp", 42, y + 53, { width: 190 });
 
-  const sealX = width / 2;
-  const sealY = y + 28;
-
-  doc
-    .circle(sealX, sealY, 34)
-    .lineWidth(1.2)
-    .strokeColor(COLORS.gold)
-    .stroke();
-
-  doc
-    .circle(sealX, sealY, 29)
-    .lineWidth(0.5)
-    .strokeColor(COLORS.navy)
-    .stroke();
-
-  doc
-    .fillColor(COLORS.navy)
-    .font(FONT.bold)
-    .fontSize(7)
-    .text("XÁC NHẬN", sealX - 30, sealY - 8, {
-      width: 60,
-      align: "center",
-    });
-
-  doc
-    .fillColor(COLORS.muted)
-    .font(FONT.body)
-    .fontSize(6)
-    .text("ĐIỆN TỬ", sealX - 30, sealY + 2, {
-      width: 60,
-      align: "center",
-    });
+  doc.image(path.join(__dirname, "..", "assets", "seal.png"), width / 2 - 32, y + 10, {
+    fit: [64, 64],
+  });
 
   doc
     .fillColor(COLORS.navy)
