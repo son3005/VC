@@ -1,3 +1,4 @@
+import bcrypt from "bcryptjs";
 import type { FilterQuery } from "mongoose";
 import { env } from "../config/env";
 import {
@@ -105,6 +106,13 @@ export async function createIssuer(
     throw new HttpError(409, "WALLET_IN_USE", "Ví đã được dùng cho issuer khác");
   }
 
+  if (!input.userId && input.email) {
+    const emailOwner = await User.findOne({ email: input.email });
+    if (emailOwner) {
+      throw new HttpError(409, "EMAIL_IN_USE", "Email đã được dùng cho tài khoản khác");
+    }
+  }
+
   let user = null;
 
   if (input.userId) {
@@ -158,6 +166,31 @@ export async function createIssuer(
     );
   }
 
+  let createdUserId: string | null = null;
+
+  if (!user && input.email && input.password) {
+    try {
+      const passwordHash = await bcrypt.hash(input.password, 10);
+      user = await User.create({
+        email: input.email,
+        passwordHash,
+        role: "issuer",
+        displayName: input.name,
+        walletAddress: wallet,
+        isActive: true,
+      });
+      createdUserId = user._id.toString();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+
+      if (message.includes("duplicate key")) {
+        throw new HttpError(409, "EMAIL_IN_USE", "Email đã được dùng cho tài khoản khác");
+      }
+
+      throw error;
+    }
+  }
+
   let issuer: IssuerDocument;
 
   try {
@@ -173,6 +206,10 @@ export async function createIssuer(
       chainAddedAt: new Date(),
     });
   } catch (error) {
+    if (createdUserId) {
+      await User.deleteOne({ _id: createdUserId }).catch(() => undefined);
+    }
+
     const message = error instanceof Error ? error.message : String(error);
 
     if (message.includes("duplicate key")) {
@@ -188,6 +225,9 @@ export async function createIssuer(
       await user.save();
     } catch (error) {
       await Issuer.deleteOne({ _id: issuer._id }).catch(() => undefined);
+      if (createdUserId) {
+        await User.deleteOne({ _id: createdUserId }).catch(() => undefined);
+      }
       const message = error instanceof Error ? error.message : String(error);
 
       if (message.includes("duplicate key")) {

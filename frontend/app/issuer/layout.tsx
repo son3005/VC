@@ -20,13 +20,15 @@ export default function IssuerLayout({ children }: { children: React.ReactNode }
     if (!isLoading) {
       if (!isAuthenticated || !user) {
         router.replace('/login');
-      } else if (role !== 'issuer' && role !== 'admin') {
+      } else if (role === 'admin') {
+        router.replace('/admin');
+      } else if (role !== 'issuer') {
         router.replace('/login');
       }
     }
   }, [isAuthenticated, isLoading, user, role, router]);
 
-  if (isLoading || !user) {
+  if (isLoading || !user || role === 'admin') {
     return (
       <div className="py-24 flex-1 flex flex-col items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-[#E6AB42] mb-3" />
@@ -79,7 +81,7 @@ export default function IssuerLayout({ children }: { children: React.ReactNode }
                     {user.displayName || 'Đơn vị cấp văn bằng'}
                   </h2>
                   <span className="text-[10px] font-semibold bg-[#010E1C] text-[#E6AB42] px-2 py-0.5 rounded-full uppercase tracking-wider">
-                    {role === 'admin' ? 'Quản trị viên' : 'Nhà trường'}
+                    Nhà trường
                   </span>
                 </div>
                 {user.walletAddress && (

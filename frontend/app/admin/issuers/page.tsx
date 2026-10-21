@@ -35,7 +35,8 @@ export default function AdminIssuersPage() {
   const [issuerCode, setIssuerCode] = useState('');
   const [issuerWallet, setIssuerWallet] = useState('');
   const [issuerWebsite, setIssuerWebsite] = useState('');
-  const [issuerUserId, setIssuerUserId] = useState('');
+  const [issuerEmail, setIssuerEmail] = useState('');
+  const [issuerPassword, setIssuerPassword] = useState('');
 
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -72,8 +73,14 @@ export default function AdminIssuersPage() {
       }
     }
 
-    if (issuerUserId.trim() && !/^[a-fA-F0-9]{24}$/.test(issuerUserId.trim())) {
-      errors.userId = 'ID người dùng phải là chuỗi 24 ký tự hex (MongoDB ObjectId)';
+    if (!issuerEmail.trim()) {
+      errors.email = 'Email đăng nhập không được để trống';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(issuerEmail.trim())) {
+      errors.email = 'Email không đúng định dạng';
+    }
+
+    if (!issuerPassword || issuerPassword.length < 8) {
+      errors.password = 'Mật khẩu phải từ 8 ký tự trở lên';
     }
 
     setFormErrors(errors);
@@ -103,7 +110,8 @@ export default function AdminIssuersPage() {
         code: issuerCode.trim().toUpperCase(),
         walletAddress: issuerWallet.trim(),
         website: issuerWebsite.trim() || undefined,
-        userId: issuerUserId.trim() || undefined,
+        email: issuerEmail.trim(),
+        password: issuerPassword,
         txHash: hash,
       });
 
@@ -117,7 +125,8 @@ export default function AdminIssuersPage() {
         setIssuerCode('');
         setIssuerWallet('');
         setIssuerWebsite('');
-        setIssuerUserId('');
+        setIssuerEmail('');
+        setIssuerPassword('');
         refetch();
       }, 1500);
     } catch (err: unknown) {
@@ -340,20 +349,32 @@ export default function AdminIssuersPage() {
               disabled={isSubmitting}
             />
 
-            <div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <Input
-                label="Mã ID tài khoản User Issuer (Tùy chọn)"
-                placeholder="65a1b2c3d4e5f6a7b8c9d0e1 (MongoDB ObjectId)"
-                value={issuerUserId}
-                onChange={(e) => setIssuerUserId(e.target.value)}
-                error={formErrors.userId}
-                className="font-mono text-xs"
+                label="Email đăng nhập của đơn vị"
+                type="email"
+                placeholder="issuer@fit.uit.edu.vn"
+                value={issuerEmail}
+                onChange={(e) => setIssuerEmail(e.target.value)}
+                error={formErrors.email}
+                autoComplete="off"
                 disabled={isSubmitting}
               />
-              <p className="text-[11px] text-[#6F5C4A] mt-1">
-                Gán trực tiếp đơn vị cấp này cho một tài khoản User có quyền <code>issuer</code> đã tạo sẵn trong hệ thống để đăng nhập tại <code>/login</code>.
-              </p>
+
+              <Input
+                label="Mật khẩu đăng nhập"
+                type="password"
+                placeholder="Tối thiểu 8 ký tự"
+                value={issuerPassword}
+                onChange={(e) => setIssuerPassword(e.target.value)}
+                error={formErrors.password}
+                autoComplete="new-password"
+                disabled={isSubmitting}
+              />
             </div>
+            <p className="text-[11px] text-[#6F5C4A]">
+              Hệ thống sẽ tự tạo tài khoản <code>issuer</code> với email này để đơn vị đăng nhập tại <code>/login</code>.
+            </p>
 
             {/* Trạng thái Transaction */}
             <TxStatus
