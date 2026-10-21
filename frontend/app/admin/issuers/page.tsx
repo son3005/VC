@@ -35,6 +35,7 @@ export default function AdminIssuersPage() {
   const [issuerCode, setIssuerCode] = useState('');
   const [issuerWallet, setIssuerWallet] = useState('');
   const [issuerWebsite, setIssuerWebsite] = useState('');
+  const [issuerUserId, setIssuerUserId] = useState('');
 
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -58,6 +59,21 @@ export default function AdminIssuersPage() {
       errors.wallet = 'Địa chỉ ví không được để trống';
     } else if (!/^0x[a-fA-F0-9]{40}$/.test(issuerWallet.trim())) {
       errors.wallet = 'Địa chỉ ví Ethereum không hợp lệ (phải bắt đầu bằng 0x và đủ 42 ký tự)';
+    }
+
+    if (issuerWebsite.trim()) {
+      try {
+        const u = new URL(issuerWebsite.trim());
+        if (u.protocol !== 'http:' && u.protocol !== 'https:') {
+          errors.website = 'Địa chỉ website chỉ chấp nhận giao thức http:// hoặc https://';
+        }
+      } catch {
+        errors.website = 'Địa chỉ website không hợp lệ (Ví dụ: https://fit.uit.edu.vn)';
+      }
+    }
+
+    if (issuerUserId.trim() && !/^[a-fA-F0-9]{24}$/.test(issuerUserId.trim())) {
+      errors.userId = 'ID người dùng phải là chuỗi 24 ký tự hex (MongoDB ObjectId)';
     }
 
     setFormErrors(errors);
@@ -87,6 +103,7 @@ export default function AdminIssuersPage() {
         code: issuerCode.trim().toUpperCase(),
         walletAddress: issuerWallet.trim(),
         website: issuerWebsite.trim() || undefined,
+        userId: issuerUserId.trim() || undefined,
         txHash: hash,
       });
 
@@ -100,6 +117,7 @@ export default function AdminIssuersPage() {
         setIssuerCode('');
         setIssuerWallet('');
         setIssuerWebsite('');
+        setIssuerUserId('');
         refetch();
       }, 1500);
     } catch (err: unknown) {
@@ -245,7 +263,8 @@ export default function AdminIssuersPage() {
                       </td>
 
                       <td className="px-4 py-4 whitespace-nowrap text-right text-xs">
-                        {issuer.website ? (
+                        {issuer.website &&
+                        (issuer.website.startsWith('http://') || issuer.website.startsWith('https://')) ? (
                           <a
                             href={issuer.website}
                             target="_blank"
@@ -302,10 +321,11 @@ export default function AdminIssuersPage() {
               />
 
               <Input
-                label="Trang thông tin (Website)"
+                label="Trang thông tin (Website - http/https)"
                 placeholder="https://fit.uit.edu.vn"
                 value={issuerWebsite}
                 onChange={(e) => setIssuerWebsite(e.target.value)}
+                error={formErrors.website}
                 disabled={isSubmitting}
               />
             </div>
@@ -319,6 +339,21 @@ export default function AdminIssuersPage() {
               className="font-mono text-xs"
               disabled={isSubmitting}
             />
+
+            <div>
+              <Input
+                label="Mã ID tài khoản User Issuer (Tùy chọn)"
+                placeholder="65a1b2c3d4e5f6a7b8c9d0e1 (MongoDB ObjectId)"
+                value={issuerUserId}
+                onChange={(e) => setIssuerUserId(e.target.value)}
+                error={formErrors.userId}
+                className="font-mono text-xs"
+                disabled={isSubmitting}
+              />
+              <p className="text-[11px] text-[#6F5C4A] mt-1">
+                Gán trực tiếp đơn vị cấp này cho một tài khoản User có quyền <code>issuer</code> đã tạo sẵn trong hệ thống để đăng nhập tại <code>/login</code>.
+              </p>
+            </div>
 
             {/* Trạng thái Transaction */}
             <TxStatus

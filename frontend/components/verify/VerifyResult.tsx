@@ -5,13 +5,13 @@ import Link from 'next/link';
 import type { VerifyHashResult } from '@/types/api';
 import { StatusBadge } from '@/components/certificate/StatusBadge';
 import { PdfButton } from '@/components/certificate/PdfButton';
+import { CertificateDetails } from '@/components/certificate/CertificateDetails';
 import { formatDateOnly, shortenAddress } from '@/lib/format';
 import { CERTIFICATE_TYPE_LABELS, EXPLORER_URL } from '@/lib/constants';
 import {
   ShieldCheck,
   AlertTriangle,
   Award,
-  Calendar,
   Building,
   ExternalLink,
   ArrowRight,
@@ -111,45 +111,34 @@ export function VerifyResult({ result, calculatedHash }: VerifyResultProps) {
           </div>
         </div>
 
-        {/* Thông tin học thuật */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
-          <div className="p-3.5 rounded-xl bg-[#FAF4DF]/60 border border-[#E3D5B8]/60 space-y-1">
-            <div className="flex items-center gap-1.5 text-xs text-[#6F5C4A]">
+        {/* Thông tin học thuật & chi tiết theo loại */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 text-sm">
+          <div className="p-4 rounded-xl bg-[#FAF4DF]/60 border border-[#E3D5B8]/60 lg:col-span-2 space-y-2">
+            <div className="flex items-center gap-1.5 text-xs text-[#6F5C4A] border-b border-[#E3D5B8]/60 pb-1.5">
               <Award className="w-3.5 h-3.5 text-[#E6AB42]" />
-              <span>Loại văn bằng:</span>
+              <span className="font-bold uppercase tracking-wider text-[#010E1C]">{typeLabel}</span>
             </div>
-            <p className="font-semibold text-[#010E1C]">{typeLabel}</p>
-            {certificate.major && (
-              <p className="text-xs text-[#6F5C4A]">Ngành: {certificate.major}</p>
-            )}
+            <CertificateDetails
+              type={certificate.certificateType}
+              details={certificate.details as Record<string, unknown>}
+              major={certificate.major}
+              graduationYear={certificate.graduationYear}
+              gpa={certificate.gpa}
+              classification={certificate.classification}
+              variant="compact"
+            />
           </div>
 
-          <div className="p-3.5 rounded-xl bg-[#FAF4DF]/60 border border-[#E3D5B8]/60 space-y-1">
-            <div className="flex items-center gap-1.5 text-xs text-[#6F5C4A]">
-              <Calendar className="w-3.5 h-3.5 text-[#E6AB42]" />
-              <span>Thời gian đào tạo:</span>
-            </div>
-            <p className="font-semibold text-[#010E1C]">
-              Năm tốt nghiệp: {certificate.graduationYear || '—'}
-            </p>
-            {certificate.gpa !== null && (
-              <p className="text-xs text-[#6F5C4A]">
-                GPA: <span className="font-mono font-bold">{certificate.gpa}</span>
-                {certificate.classification && ` (${certificate.classification})`}
-              </p>
-            )}
-          </div>
-
-          <div className="p-3.5 rounded-xl bg-[#FAF4DF]/60 border border-[#E3D5B8]/60 space-y-1 sm:col-span-2 lg:col-span-1">
-            <div className="flex items-center gap-1.5 text-xs text-[#6F5C4A]">
+          <div className="p-4 rounded-xl bg-[#FAF4DF]/60 border border-[#E3D5B8]/60 space-y-2">
+            <div className="flex items-center gap-1.5 text-xs text-[#6F5C4A] border-b border-[#E3D5B8]/60 pb-1.5">
               <Building className="w-3.5 h-3.5 text-[#E6AB42]" />
-              <span>Đơn vị cấp phát:</span>
+              <span className="font-bold uppercase tracking-wider text-[#010E1C]">Đơn vị cấp phát</span>
             </div>
-            <p className="font-semibold text-[#010E1C]">
+            <p className="font-semibold text-sm text-[#010E1C]">
               {certificate.issuerName || issuer || 'Trường Đại học'}
             </p>
             <p className="text-xs text-[#6F5C4A]">
-              Ngày cấp: {formatDateOnly(certificate.issuedAt || issuedAt)}
+              Ngày cấp: <strong className="text-[#010E1C]">{formatDateOnly(certificate.issuedAt || issuedAt)}</strong>
             </p>
           </div>
         </div>

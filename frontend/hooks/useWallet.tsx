@@ -1,18 +1,23 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { BrowserProvider } from 'ethers';
 import { CHAIN_ID, CHAIN_ID_HEX, CHAIN_NAME, RPC_URL, EXPLORER_URL } from '@/lib/constants';
 
-export interface WalletState {
+export interface WalletContextType {
   address: string | null;
   chainId: number | null;
   isConnecting: boolean;
   error: string | null;
   isCorrectNetwork: boolean;
+  connect: () => Promise<void>;
+  switchToSepolia: () => Promise<void>;
+  checkConnection: () => Promise<void>;
 }
 
-export function useWallet() {
+const WalletContext = createContext<WalletContextType | undefined>(undefined);
+
+export function WalletProvider({ children }: { children: React.ReactNode }) {
   const [address, setAddress] = useState<string | null>(null);
   const [chainId, setChainId] = useState<number | null>(null);
   const [isConnecting, setIsConnecting] = useState(false);
@@ -123,7 +128,6 @@ export function useWallet() {
       await updateNetwork();
     } catch (switchError: unknown) {
       const err = switchError as { code?: number };
-      // This error code indicates that the chain has not been added to MetaMask
       if (err.code === 4902) {
         try {
           await window.ethereum.request({
@@ -153,7 +157,7 @@ export function useWallet() {
     }
   };
 
-  return {
+  const value: WalletContextType = {
     address,
     chainId,
     isConnecting,
@@ -163,4 +167,14 @@ export function useWallet() {
     switchToSepolia,
     checkConnection,
   };
+
+  return <WalletContext.Provider value={value}>{children}</WalletContext.Provider>;
+}
+
+export function useWallet(): WalletContextType {
+  const context = useContext(WalletContext);
+  if (!context) {
+    throw new Error('useWallet must be used within a WalletProvider');
+  }
+  return context;
 }

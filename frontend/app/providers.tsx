@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider } from '@/hooks/useAuth';
+import { WalletProvider } from '@/hooks/useWallet';
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(
@@ -22,8 +23,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        {children}
-        <Toaster
+        <WalletProvider>
+          {children}
+          <Toaster
         position="top-right"
         toastOptions={{
           style: {
@@ -47,6 +49,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
           },
         }}
       />
+        </WalletProvider>
       </AuthProvider>
     </QueryClientProvider>
   );

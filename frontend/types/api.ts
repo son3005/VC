@@ -90,6 +90,7 @@ export interface CertificateIssuer {
   graduationYear: number | null;
   gpa: number | null;
   classification: string | null;
+  details?: Record<string, unknown>;
   artifactType: ArtifactType;
   filename: string;
   status: CertificateStatus;

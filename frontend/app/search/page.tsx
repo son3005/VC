@@ -62,7 +62,31 @@ function SearchPageContent() {
     [router]
   );
 
-  // Khi debouncedQuery hoặc filters thay đổi → reset về trang 1 và sync URL
+  // Đồng bộ state khi URL searchParams thay đổi từ bên ngoài (Back/Forward hoặc điều hướng link mới)
+  useEffect(() => {
+    const q = searchParams.get('q') || '';
+    const year = searchParams.get('year') || '';
+    const major = searchParams.get('major') || '';
+    const type = searchParams.get('type') || '';
+    const status = searchParams.get('status') || 'all';
+    const page = parseInt(searchParams.get('page') || '1', 10);
+
+    setQueryInput((prev) => (prev !== q ? q : prev));
+    setFilters((prev) => {
+      if (
+        prev.year !== year ||
+        prev.major !== major ||
+        prev.type !== type ||
+        prev.status !== status
+      ) {
+        return { year, major, type, status };
+      }
+      return prev;
+    });
+    setCurrentPage((prev) => (prev !== page ? page : prev));
+  }, [searchParams]);
+
+  // Khi debouncedQuery hoặc filters thay đổi → sync URL
   useEffect(() => {
     syncUrlParams(debouncedQuery, filters, currentPage);
   }, [debouncedQuery, filters, currentPage, syncUrlParams]);

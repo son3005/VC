@@ -50,6 +50,7 @@ async function request<T>(
     if (typeof window !== 'undefined') {
       localStorage.removeItem('vc_token');
       localStorage.removeItem('vc_user');
+      window.dispatchEvent(new Event('vc:auth:logout'));
       if (!window.location.pathname.startsWith('/login')) {
         window.location.href = '/login';
       }

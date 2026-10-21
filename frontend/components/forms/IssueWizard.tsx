@@ -51,7 +51,7 @@ export function IssueWizard() {
   const [studentName, setStudentName] = useState('');
   const [studentCode, setStudentCode] = useState('');
 
-  // Details cho từng loại
+  // Details cho từng loại khớp chuẩn backend
   const [degreeDetails, setDegreeDetails] = useState({
     degreeTitle: 'Cử nhân',
     major: 'Kỹ thuật phần mềm',
@@ -59,26 +59,37 @@ export function IssueWizard() {
     gpa: 3.5,
     classification: 'Giỏi',
     studyMode: 'Chính quy',
+    thesisTitle: '',
   });
 
   const [courseDetails, setCourseDetails] = useState({
-    courseName: '',
-    courseCode: '',
-    issueDate: new Date().toISOString().split('T')[0],
-    completionScore: 90,
+    courseCode: 'CS409',
+    courseName: 'Lập trình ứng dụng Blockchain và Hợp đồng thông minh',
+    credits: 3,
+    semester: 'Học kỳ 1 2025-2026',
+    gradeScale: '10' as '10' | '4' | 'letter',
+    grade: '8.5',
+    grade4: '3.5',
+    durationHours: '45',
+    instructor: 'TS. Nguyễn Văn B',
   });
 
   const [creditDetails, setCreditDetails] = useState({
-    subjectName: '',
-    subjectCode: '',
-    credits: 3,
-    grade: 'A',
-    semester: 'Học kỳ 1 (2025-2026)',
+    programName: 'Chương trình Đào tạo Cử nhân Khoa học Máy tính',
+    totalCredits: 130,
+    completedCredits: 120,
+    gpa: '3.52',
+    gradeScale: '4' as '10' | '4' | 'letter',
   });
 
   const [otherDetails, setOtherDetails] = useState({
-    title: '',
-    description: '',
+    title: 'Chứng nhận Hoàn thành Dự án Nghiên cứu Khoa học',
+    description: 'Đã hoàn thành xuất sắc đề tài nghiên cứu ứng dụng công nghệ chuỗi khối trong xác thực văn bằng.',
+    organizer: 'Phòng Quản lý Khoa học & Công nghệ',
+    eventDate: '2026-05-20',
+    role: 'Trưởng nhóm nghiên cứu',
+    result: 'Giải Nhất cấp Trường',
+    validUntil: '',
   });
 
   // State lỗi validation Bước 1
@@ -111,17 +122,67 @@ export function IssueWizard() {
     setCertId(prefixMap[newType]);
   };
 
-  // Lấy chi tiết tùy theo certType
+  // Làm sạch và ép kiểu dữ liệu gửi Backend API
   const getActiveDetails = () => {
     switch (certType) {
       case 'degree':
-        return degreeDetails;
-      case 'course':
-        return courseDetails;
+        return {
+          degreeTitle: degreeDetails.degreeTitle.trim(),
+          major: degreeDetails.major.trim(),
+          graduationYear: Number(degreeDetails.graduationYear),
+          gpa: Number(degreeDetails.gpa),
+          classification: degreeDetails.classification.trim(),
+          studyMode: degreeDetails.studyMode.trim() || undefined,
+          thesisTitle: degreeDetails.thesisTitle.trim() || undefined,
+        };
+      case 'course': {
+        const rawGrade = courseDetails.grade.trim();
+        const parsedGrade =
+          courseDetails.gradeScale === 'letter'
+            ? rawGrade
+            : isNaN(parseFloat(rawGrade))
+            ? 0
+            : parseFloat(rawGrade);
+
+        return {
+          courseCode: courseDetails.courseCode.trim(),
+          courseName: courseDetails.courseName.trim(),
+          credits: Number(courseDetails.credits),
+          semester: courseDetails.semester.trim(),
+          gradeScale: courseDetails.gradeScale,
+          grade: parsedGrade,
+          grade4:
+            courseDetails.grade4 !== '' && !isNaN(Number(courseDetails.grade4))
+              ? Number(courseDetails.grade4)
+              : undefined,
+          durationHours:
+            courseDetails.durationHours !== '' && !isNaN(Number(courseDetails.durationHours))
+              ? Number(courseDetails.durationHours)
+              : undefined,
+          instructor: courseDetails.instructor.trim() || undefined,
+        };
+      }
       case 'credit':
-        return creditDetails;
+        return {
+          programName: creditDetails.programName.trim(),
+          totalCredits: Number(creditDetails.totalCredits),
+          completedCredits: Number(creditDetails.completedCredits),
+          gradeScale: creditDetails.gradeScale,
+          gpa:
+            creditDetails.gpa !== '' && !isNaN(Number(creditDetails.gpa))
+              ? Number(creditDetails.gpa)
+              : undefined,
+        };
       case 'other':
-        return otherDetails;
+        return {
+          title: otherDetails.title.trim(),
+          description: otherDetails.description.trim(),
+          organizer: otherDetails.organizer.trim() || undefined,
+          eventDate: otherDetails.eventDate.trim() || undefined,
+          role: otherDetails.role.trim() || undefined,
+          result: otherDetails.result.trim() || undefined,
+          validUntil: otherDetails.validUntil.trim() || undefined,
+        };
     }
   };
 
@@ -150,29 +211,30 @@ export function IssueWizard() {
     }
 
     // Validate details theo schema tương ứng
+    const activeDetails = getActiveDetails();
     if (certType === 'degree') {
-      const detailRes = degreeDetailsSchema.safeParse(degreeDetails);
+      const detailRes = degreeDetailsSchema.safeParse(activeDetails);
       if (!detailRes.success) {
         detailRes.error.errors.forEach((err) => {
           if (err.path[0]) errors[`degree_${err.path[0]}`] = err.message;
         });
       }
     } else if (certType === 'course') {
-      const detailRes = courseDetailsSchema.safeParse(courseDetails);
+      const detailRes = courseDetailsSchema.safeParse(activeDetails);
       if (!detailRes.success) {
         detailRes.error.errors.forEach((err) => {
           if (err.path[0]) errors[`course_${err.path[0]}`] = err.message;
         });
       }
     } else if (certType === 'credit') {
-      const detailRes = creditDetailsSchema.safeParse(creditDetails);
+      const detailRes = creditDetailsSchema.safeParse(activeDetails);
       if (!detailRes.success) {
         detailRes.error.errors.forEach((err) => {
           if (err.path[0]) errors[`credit_${err.path[0]}`] = err.message;
         });
       }
     } else if (certType === 'other') {
-      const detailRes = otherDetailsSchema.safeParse(otherDetails);
+      const detailRes = otherDetailsSchema.safeParse(activeDetails);
       if (!detailRes.success) {
         detailRes.error.errors.forEach((err) => {
           if (err.path[0]) errors[`other_${err.path[0]}`] = err.message;
@@ -315,6 +377,16 @@ export function IssueWizard() {
     setStep(1);
     setStudentName('');
     setStudentCode('');
+    // Tạo mã mới ngẫu nhiên để tránh xung đột mã cũ (409)
+    const year = new Date().getFullYear();
+    const rand = Math.floor(1000 + Math.random() * 9000);
+    const prefixMap = {
+      degree: `UIT-DEG-${year}-${rand}`,
+      course: `UIT-CRS-${year}-${rand}`,
+      credit: `UIT-CRE-${year}-${rand}`,
+      other: `UIT-OTH-${year}-${rand}`,
+    };
+    setCertId(prefixMap[certType]);
     setPreparedData(null);
     setTxHash(null);
     setTxState('idle');
@@ -521,118 +593,257 @@ export function IssueWizard() {
                 </div>
               )}
 
+              {/* 2. COURSE */}
               {certType === 'course' && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
                   <Input
-                    label="Tên khóa học"
-                    value={courseDetails.courseName}
-                    onChange={(e) =>
-                      setCourseDetails({ ...courseDetails, courseName: e.target.value })
-                    }
-                    error={formErrors.course_courseName}
-                  />
-
-                  <Input
-                    label="Mã khóa học"
+                    label="Mã môn học"
                     value={courseDetails.courseCode}
                     onChange={(e) =>
                       setCourseDetails({ ...courseDetails, courseCode: e.target.value })
                     }
                     error={formErrors.course_courseCode}
+                    placeholder="CS409"
+                    className="font-mono uppercase"
                   />
 
-                  <Input
-                    label="Ngày hoàn thành"
-                    type="date"
-                    value={courseDetails.issueDate}
-                    onChange={(e) =>
-                      setCourseDetails({ ...courseDetails, issueDate: e.target.value })
-                    }
-                    error={formErrors.course_issueDate}
-                  />
+                  <div className="sm:col-span-2">
+                    <Input
+                      label="Tên môn học / Khóa học"
+                      value={courseDetails.courseName}
+                      onChange={(e) =>
+                        setCourseDetails({ ...courseDetails, courseName: e.target.value })
+                      }
+                      error={formErrors.course_courseName}
+                      placeholder="Lập trình ứng dụng Blockchain và Hợp đồng thông minh"
+                    />
+                  </div>
 
                   <Input
-                    label="Điểm tổng kết"
+                    label="Số tín chỉ (1-10)"
                     type="number"
-                    value={courseDetails.completionScore}
+                    value={courseDetails.credits}
                     onChange={(e) =>
                       setCourseDetails({
                         ...courseDetails,
-                        completionScore: parseInt(e.target.value, 10) || 0,
-                      })
-                    }
-                  />
-                </div>
-              )}
-
-              {certType === 'credit' && (
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
-                  <Input
-                    label="Tên học phần"
-                    value={creditDetails.subjectName}
-                    onChange={(e) =>
-                      setCreditDetails({ ...creditDetails, subjectName: e.target.value })
-                    }
-                    error={formErrors.credit_subjectName}
-                  />
-
-                  <Input
-                    label="Mã học phần"
-                    value={creditDetails.subjectCode}
-                    onChange={(e) =>
-                      setCreditDetails({ ...creditDetails, subjectCode: e.target.value })
-                    }
-                    error={formErrors.credit_subjectCode}
-                  />
-
-                  <Input
-                    label="Số tín chỉ"
-                    type="number"
-                    value={creditDetails.credits}
-                    onChange={(e) =>
-                      setCreditDetails({
-                        ...creditDetails,
                         credits: parseInt(e.target.value, 10) || 1,
                       })
                     }
+                    error={formErrors.course_credits}
                   />
 
                   <Input
-                    label="Điểm chữ (A, B+,...)"
-                    value={creditDetails.grade}
+                    label="Học kỳ hoàn thành"
+                    value={courseDetails.semester}
                     onChange={(e) =>
-                      setCreditDetails({ ...creditDetails, grade: e.target.value })
+                      setCourseDetails({ ...courseDetails, semester: e.target.value })
                     }
+                    error={formErrors.course_semester}
+                    placeholder="Học kỳ 1 2025-2026"
+                  />
+
+                  <Select
+                    label="Thang điểm đánh giá"
+                    value={courseDetails.gradeScale}
+                    onChange={(e) =>
+                      setCourseDetails({
+                        ...courseDetails,
+                        gradeScale: e.target.value as '10' | '4' | 'letter',
+                      })
+                    }
+                    options={[
+                      { value: '10', label: 'Thang điểm 10 (0 - 10)' },
+                      { value: '4', label: 'Thang điểm 4 (0 - 4.0)' },
+                      { value: 'letter', label: 'Thang điểm chữ (A, B+, B, C...)' },
+                    ]}
                   />
 
                   <Input
-                    label="Học kỳ"
-                    value={creditDetails.semester}
+                    label={`Điểm đạt được (${
+                      courseDetails.gradeScale === '10'
+                        ? '0 - 10'
+                        : courseDetails.gradeScale === '4'
+                        ? '0 - 4.0'
+                        : 'A, B+, B, C, D, F'
+                    })`}
+                    value={courseDetails.grade}
                     onChange={(e) =>
-                      setCreditDetails({ ...creditDetails, semester: e.target.value })
+                      setCourseDetails({ ...courseDetails, grade: e.target.value })
                     }
+                    error={formErrors.course_grade}
+                    placeholder={courseDetails.gradeScale === 'letter' ? 'A' : '8.5'}
+                  />
+
+                  <Input
+                    label="Điểm hệ 4 quy đổi (Tùy chọn)"
+                    value={courseDetails.grade4}
+                    onChange={(e) =>
+                      setCourseDetails({ ...courseDetails, grade4: e.target.value })
+                    }
+                    placeholder="3.5"
+                  />
+
+                  <Input
+                    label="Thời lượng số tiết học (Tùy chọn)"
+                    type="number"
+                    value={courseDetails.durationHours}
+                    onChange={(e) =>
+                      setCourseDetails({ ...courseDetails, durationHours: e.target.value })
+                    }
+                    placeholder="45"
+                  />
+
+                  <div className="sm:col-span-3">
+                    <Input
+                      label="Giảng viên phụ trách (Tùy chọn)"
+                      value={courseDetails.instructor}
+                      onChange={(e) =>
+                        setCourseDetails({ ...courseDetails, instructor: e.target.value })
+                      }
+                      placeholder="TS. Nguyễn Văn B"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* 3. CREDIT */}
+              {certType === 'credit' && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                  <div className="sm:col-span-2">
+                    <Input
+                      label="Tên chương trình đào tạo tích lũy"
+                      value={creditDetails.programName}
+                      onChange={(e) =>
+                        setCreditDetails({ ...creditDetails, programName: e.target.value })
+                      }
+                      error={formErrors.credit_programName}
+                      placeholder="Chương trình Đào tạo Cử nhân Khoa học Máy tính"
+                    />
+                  </div>
+
+                  <Input
+                    label="Tổng số tín chỉ chương trình"
+                    type="number"
+                    value={creditDetails.totalCredits}
+                    onChange={(e) =>
+                      setCreditDetails({
+                        ...creditDetails,
+                        totalCredits: parseInt(e.target.value, 10) || 1,
+                      })
+                    }
+                    error={formErrors.credit_totalCredits}
+                  />
+
+                  <Input
+                    label="Số tín chỉ đã tích lũy"
+                    type="number"
+                    value={creditDetails.completedCredits}
+                    onChange={(e) =>
+                      setCreditDetails({
+                        ...creditDetails,
+                        completedCredits: parseInt(e.target.value, 10) || 0,
+                      })
+                    }
+                    error={formErrors.credit_completedCredits}
+                  />
+
+                  <Select
+                    label="Thang điểm đánh giá chung"
+                    value={creditDetails.gradeScale}
+                    onChange={(e) =>
+                      setCreditDetails({
+                        ...creditDetails,
+                        gradeScale: e.target.value as '10' | '4' | 'letter',
+                      })
+                    }
+                    options={[
+                      { value: '4', label: 'Thang điểm 4 (0 - 4.0)' },
+                      { value: '10', label: 'Thang điểm 10 (0 - 10)' },
+                      { value: 'letter', label: 'Thang điểm chữ (A, B+,...)' },
+                    ]}
+                  />
+
+                  <Input
+                    label="Điểm trung bình tích lũy GPA (0 - 4.0, Tùy chọn)"
+                    value={creditDetails.gpa}
+                    onChange={(e) =>
+                      setCreditDetails({ ...creditDetails, gpa: e.target.value })
+                    }
+                    placeholder="3.52"
                   />
                 </div>
               )}
 
+              {/* 4. OTHER */}
               {certType === 'other' && (
-                <div className="space-y-3 text-xs">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                  <div className="sm:col-span-2">
+                    <Input
+                      label="Tiêu đề chứng chỉ / Giấy chứng nhận"
+                      value={otherDetails.title}
+                      onChange={(e) =>
+                        setOtherDetails({ ...otherDetails, title: e.target.value })
+                      }
+                      error={formErrors.other_title}
+                      placeholder="Chứng nhận Hoàn thành Dự án Nghiên cứu Khoa học"
+                    />
+                  </div>
+
+                  <div className="sm:col-span-2">
+                    <Input
+                      label="Mô tả nội dung chứng nhận"
+                      value={otherDetails.description}
+                      onChange={(e) =>
+                        setOtherDetails({ ...otherDetails, description: e.target.value })
+                      }
+                      error={formErrors.other_description}
+                      placeholder="Đã hoàn thành xuất sắc đề tài nghiên cứu ứng dụng công nghệ chuỗi khối trong xác thực văn bằng."
+                    />
+                  </div>
+
                   <Input
-                    label="Tiêu đề chứng chỉ"
-                    value={otherDetails.title}
+                    label="Đơn vị tổ chức / Ban hành (Tùy chọn)"
+                    value={otherDetails.organizer}
                     onChange={(e) =>
-                      setOtherDetails({ ...otherDetails, title: e.target.value })
+                      setOtherDetails({ ...otherDetails, organizer: e.target.value })
                     }
-                    error={formErrors.other_title}
+                    placeholder="Phòng Quản lý Khoa học & Công nghệ"
                   />
 
                   <Input
-                    label="Mô tả nội dung"
-                    value={otherDetails.description}
+                    label="Ngày cấp / diễn ra (Tùy chọn)"
+                    type="date"
+                    value={otherDetails.eventDate}
                     onChange={(e) =>
-                      setOtherDetails({ ...otherDetails, description: e.target.value })
+                      setOtherDetails({ ...otherDetails, eventDate: e.target.value })
                     }
-                    error={formErrors.other_description}
+                  />
+
+                  <Input
+                    label="Vai trò tham gia (Tùy chọn)"
+                    value={otherDetails.role}
+                    onChange={(e) =>
+                      setOtherDetails({ ...otherDetails, role: e.target.value })
+                    }
+                    placeholder="Trưởng nhóm nghiên cứu"
+                  />
+
+                  <Input
+                    label="Kết quả / Thành tích đạt được (Tùy chọn)"
+                    value={otherDetails.result}
+                    onChange={(e) =>
+                      setOtherDetails({ ...otherDetails, result: e.target.value })
+                    }
+                    placeholder="Giải Nhất cấp Trường"
+                  />
+
+                  <Input
+                    label="Thời hạn giá trị (Tùy chọn)"
+                    value={otherDetails.validUntil}
+                    onChange={(e) =>
+                      setOtherDetails({ ...otherDetails, validUntil: e.target.value })
+                    }
+                    placeholder="Vĩnh viễn"
                   />
                 </div>
               )}

@@ -9,6 +9,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import { Container } from '@/components/layout/Container';
 import { StatusBadge } from '@/components/certificate/StatusBadge';
 import { PdfButton } from '@/components/certificate/PdfButton';
+import { CertificateDetails } from '@/components/certificate/CertificateDetails';
 import { Button } from '@/components/ui/Button';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -18,7 +19,6 @@ import { CERTIFICATE_TYPE_LABELS, EXPLORER_URL } from '@/lib/constants';
 import {
   ShieldCheck,
   AlertTriangle,
-  Award,
   Building,
   Check,
   ExternalLink,
@@ -226,50 +226,30 @@ export default function CertificateDetailPage() {
 
             <div className="space-y-1">
               <p className="text-sm font-semibold text-[#010E1C] uppercase tracking-wider">
-                {typeLabel} — {cert.major || 'Đào tạo chuẩn'}
+                {typeLabel}
               </p>
-              {cert.details && typeof cert.details === 'object' && (
-                <div className="text-xs text-[#6F5C4A] space-y-0.5">
-                  {Boolean((cert.details as Record<string, unknown>).degreeTitle) && (
-                    <p>Danh hiệu: {(cert.details as Record<string, unknown>).degreeTitle as string}</p>
-                  )}
-                  {Boolean((cert.details as Record<string, unknown>).studyMode) && (
-                    <p>Hình thức đào tạo: {(cert.details as Record<string, unknown>).studyMode as string}</p>
-                  )}
-                </div>
-              )}
+            </div>
+
+            {/* Chi tiết linh hoạt theo 4 loại văn bằng: degree, course, credit, other */}
+            <div className="pt-2 text-left">
+              <CertificateDetails
+                type={cert.certificateType}
+                details={cert.details as Record<string, unknown>}
+                major={cert.major}
+                graduationYear={cert.graduationYear}
+                gpa={cert.gpa}
+                classification={cert.classification}
+              />
             </div>
           </div>
 
-          {/* Lưới thông số học thuật & QR xác minh */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-8 mt-8 border-t border-[#E3D5B8]/80">
-            {/* Cột 1: Điểm & Năm */}
-            <div className="p-4 rounded-2xl bg-[#FAF4DF]/60 border border-[#E3D5B8]/60 space-y-3">
-              <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[#010E1C]">
-                <Award className="w-4 h-4 text-[#E6AB42]" />
-                <span>Kết quả tốt nghiệp</span>
-              </div>
-              <div className="space-y-1.5 text-xs">
-                <p className="text-[#6F5C4A]">
-                  Năm tốt nghiệp: <strong className="text-[#010E1C] font-mono">{cert.graduationYear || '—'}</strong>
-                </p>
-                <p className="text-[#6F5C4A]">
-                  Điểm trung bình (GPA):{' '}
-                  <strong className="text-[#010E1C] font-mono font-bold">
-                    {cert.gpa !== null && cert.gpa !== undefined ? cert.gpa.toFixed(2) : '—'}
-                  </strong>
-                </p>
-                <p className="text-[#6F5C4A]">
-                  Xếp loại: <strong className="text-[#010E1C]">{cert.classification || '—'}</strong>
-                </p>
-              </div>
-            </div>
-
-            {/* Cột 2: Đơn vị cấp & Ngày */}
+          {/* Lưới đơn vị cấp & QR xác minh */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6 mt-6 border-t border-[#E3D5B8]/80">
+            {/* Cột 1: Đơn vị cấp & Ngày */}
             <div className="p-4 rounded-2xl bg-[#FAF4DF]/60 border border-[#E3D5B8]/60 space-y-3">
               <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[#010E1C]">
                 <Building className="w-4 h-4 text-[#E6AB42]" />
-                <span>Phát hành & Bản mẫu</span>
+                <span>Đơn vị phát hành & Bản mẫu</span>
               </div>
               <div className="space-y-1.5 text-xs">
                 <p className="text-[#6F5C4A]">

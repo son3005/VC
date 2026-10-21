@@ -2,6 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { StatusBadge } from '@/components/certificate/StatusBadge';
@@ -11,6 +12,7 @@ import { EXPLORER_URL } from '@/lib/constants';
 import { Award, ArrowUpRight, Clock, ExternalLink } from 'lucide-react';
 
 export function RecentCertificates() {
+  const router = useRouter();
   const { data, isLoading, isError } = useQuery({
     queryKey: ['recentCertificates'],
     queryFn: () => api.recentCertificates(6),
@@ -70,10 +72,10 @@ export function RecentCertificates() {
       ) : data?.data && data.data.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {data.data.map((cert) => (
-            <Link
+            <div
               key={cert.certificateId}
-              href={`/c/${encodeURIComponent(cert.certificateId)}`}
-              className="group block p-5 rounded-2xl border border-[#E3D5B8] bg-[#FFFDF7] hover:border-[#E6AB42] hover:shadow-md transition-all duration-200"
+              onClick={() => router.push(`/c/${encodeURIComponent(cert.certificateId)}`)}
+              className="group block p-5 rounded-2xl border border-[#E3D5B8] bg-[#FFFDF7] hover:border-[#E6AB42] hover:shadow-md transition-all duration-200 cursor-pointer"
             >
               <div className="flex items-start justify-between gap-2 mb-3">
                 <span className="font-mono text-xs font-semibold text-[#6F5C4A] bg-[#FAF4DF] px-2.5 py-1 rounded-lg border border-[#E3D5B8]">
@@ -117,7 +119,7 @@ export function RecentCertificates() {
                   </span>
                 )}
               </div>
-            </Link>
+            </div>
           ))}
         </div>
       ) : (

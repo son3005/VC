@@ -17,7 +17,10 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+import { useQueryClient } from '@tanstack/react-query';
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const queryClient = useQueryClient();
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -27,7 +30,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     localStorage.removeItem('vc_user');
     setToken(null);
     setUser(null);
-  }, []);
+    queryClient.clear();
+  }, [queryClient]);
+
+  useEffect(() => {
+    const handleAuthLogout = () => {
+      logout();
+    };
+    window.addEventListener('vc:auth:logout', handleAuthLogout);
+    return () => window.removeEventListener('vc:auth:logout', handleAuthLogout);
+  }, [logout]);
 
   const refreshUser = useCallback(async () => {
     const storedToken = localStorage.getItem('vc_token');

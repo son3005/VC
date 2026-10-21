@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
 import { Container } from '@/components/layout/Container';
 import { StatusBadge } from '@/components/certificate/StatusBadge';
+import { CertificateDetails } from '@/components/certificate/CertificateDetails';
 import { TxStatus, type TxState } from '@/components/tx/TxStatus';
 import { TxLink } from '@/components/tx/TxLink';
 import { Button } from '@/components/ui/Button';
@@ -20,7 +21,7 @@ import {
   revokeCertificateOnChain,
   assertCorrectNetworkAndSigner,
 } from '@/lib/contract';
-import { formatDate, formatDateOnly } from '@/lib/format';
+import { formatDate } from '@/lib/format';
 import { CERTIFICATE_TYPE_LABELS } from '@/lib/constants';
 import {
   ChevronLeft,
@@ -248,29 +249,25 @@ export default function IssuerCertificateDetailPage() {
             </div>
           </div>
 
-          {/* Chi tiết học thuật */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-xs">
-            <div className="p-4 rounded-xl bg-[#FAF4DF]/60 border border-[#E3D5B8]/60 space-y-1">
-              <span className="text-[#6F5C4A] block">Loại văn bằng:</span>
-              <p className="font-bold text-sm text-[#010E1C]">{typeLabel}</p>
-              {cert.major && <p className="text-[#6F5C4A]">Ngành: {cert.major}</p>}
+          {/* Chi tiết học thuật theo 4 loại văn bằng */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-[#6F5C4A]">
+              <span>Loại văn bằng:</span>
+              <strong className="text-[#010E1C]">{typeLabel}</strong>
             </div>
 
-            <div className="p-4 rounded-xl bg-[#FAF4DF]/60 border border-[#E3D5B8]/60 space-y-1">
-              <span className="text-[#6F5C4A] block">Kết quả tốt nghiệp:</span>
-              <p className="text-[#010E1C]">
-                Năm tốt nghiệp: <strong className="font-mono">{cert.graduationYear || '—'}</strong>
-              </p>
-              <p className="text-[#010E1C]">
-                GPA: <strong className="font-mono">{cert.gpa !== null && cert.gpa !== undefined ? cert.gpa.toFixed(2) : '—'}</strong>{' '}
-                {cert.classification && `(${cert.classification})`}
-              </p>
-            </div>
+            <CertificateDetails
+              type={cert.certificateType}
+              details={cert.details}
+              major={cert.major}
+              graduationYear={cert.graduationYear}
+              gpa={cert.gpa}
+              classification={cert.classification}
+            />
 
-            <div className="p-4 rounded-xl bg-[#FAF4DF]/60 border border-[#E3D5B8]/60 space-y-1">
-              <span className="text-[#6F5C4A] block">Ngày phát hành:</span>
-              <p className="font-bold text-sm text-[#010E1C]">{formatDateOnly(cert.issuedAt)}</p>
-              <p className="text-[11px] text-[#6F5C4A]">{formatDate(cert.issuedAt)}</p>
+            <div className="p-4 rounded-xl bg-[#FAF4DF]/60 border border-[#E3D5B8]/60 flex items-center justify-between text-xs">
+              <span className="text-[#6F5C4A]">Thời gian phát hành on-chain:</span>
+              <span className="text-[#010E1C] font-semibold">{formatDate(cert.issuedAt)}</span>
             </div>
           </div>
 
