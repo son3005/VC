@@ -1,0 +1,61 @@
+@import "tailwindcss";
+
+:root {
+  --color-primary: #010E1C;
+  --color-secondary: #E6AB42;
+  --color-bg: #FAF4DF;
+  --color-surface: #FFFDF7;
+  --color-neutral: #A48B73;
+  --color-accent: #E6606A;
+  --color-accent-strong: #B23F4A;
+  --color-muted: #6F5C4A;
+  --color-border: #E3D5B8;
+}
+
+@theme {
+  --color-primary: #010E1C;
+  --color-secondary: #E6AB42;
+  --color-bg: #FAF4DF;
+  --color-surface: #FFFDF7;
+  --color-neutral: #A48B73;
+  --color-accent: #E6606A;
+  --color-accent-strong: #B23F4A;
+  --color-muted: #6F5C4A;
+  --color-border: #E3D5B8;
+
+  --font-serif: var(--font-playfair), Georgia, serif;
+  --font-sans: var(--font-be-vietnam-pro), system-ui, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  background-color: var(--color-bg);
+  color: var(--color-primary);
+  font-family: var(--font-sans);
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Custom scrollbar for academic feel */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-bg);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-neutral);
+}

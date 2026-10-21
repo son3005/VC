@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none">
+  <!-- Shield Background -->
+  <path d="M24 4L8 10V22C8 33.2 14.8 41.6 24 44C33.2 41.6 40 33.2 40 22V10L24 4Z" fill="#010E1C" stroke="#E6AB42" stroke-width="2.5" stroke-linejoin="round"/>
+  <!-- Graduation Cap & Certificate Knot -->
+  <path d="M24 14L34 19L24 24L14 19L24 14Z" fill="#E6AB42"/>
+  <path d="M18 21.5V27C18 29.5 20.7 31 24 31C27.3 31 30 29.5 30 27V21.5" stroke="#E6AB42" stroke-width="2" stroke-linecap="round"/>
+  <path d="M34 19V26" stroke="#E6AB42" stroke-width="2" stroke-linecap="round"/>
+  <!-- Blockchain node dot -->
+  <circle cx="24" cy="36" r="2.5" fill="#E6AB42"/>
+  <path d="M20 36H21.5M26.5 36H28" stroke="#E6AB42" stroke-width="2" stroke-linecap="round"/>
+</svg>

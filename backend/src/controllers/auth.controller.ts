@@ -9,8 +9,8 @@ export async function loginController(
   next: NextFunction
 ): Promise<void> {
   try {
-    const { email, password } = loginSchema.parse(req.body);
-    const result = await authService.login(email, password);
+    const { email, password, walletAddress } = loginSchema.parse(req.body);
+    const result = await authService.login(email, password, walletAddress);
 
     res.json({
       success: true,

@@ -74,6 +74,7 @@ Lấy token từ `POST /api/auth/login`.
 | `CERTIFICATE_NOT_FOUND` | 404 | Không tìm thấy chứng chỉ |
 | `ISSUER_EXISTS` | 409 | Mã issuer đã tồn tại |
 | `WALLET_IN_USE` | 409 | Ví đã gắn tài khoản/issuer khác |
+| `EMAIL_IN_USE` | 409 | Email đã dùng cho tài khoản khác |
 | `CERTIFICATE_EXISTS` | 409 | Mã chứng chỉ đã tồn tại |
 | `HASH_EXISTS` | 409 | File hash đã được cấp |
 | `ALREADY_REVOKED` | 409 | Chứng chỉ đã thu hồi |
@@ -126,9 +127,12 @@ Public. Rate limit **5 lần/phút/IP**.
 ```json
 {
   "email": "issuer@verifycert.local",
-  "password": "Issuer@123456"
+  "password": "Issuer@123456",
+  "walletAddress": "0xf009863379F6B0056C1D828fDE2827fD94202a1B"
 }
 ```
+
+Email, mật khẩu và ví phải khớp với cùng một tài khoản. Sai bất kỳ phần nào đều trả cùng một lỗi `401` để tránh lộ thông tin tài khoản/ví.
 
 **200 OK**
 
@@ -148,7 +152,7 @@ Public. Rate limit **5 lần/phút/IP**.
 }
 ```
 
-Sai mật khẩu → `401 UNAUTHORIZED`.
+Sai email, mật khẩu hoặc ví → `401 UNAUTHORIZED` với thông báo chung `Tài khoản, mật khẩu hoặc ví không đúng`.
 
 ### `GET /api/auth/me`
 
@@ -220,14 +224,20 @@ Admin. Lưu issuer **sau khi** đã gọi `addIssuer` on-chain.
   "name": "Khoa Công nghệ Thông tin",
   "code": "CNTT",
   "walletAddress": "0xf009863379F6B0056C1D828fDE2827fD94202a1B",
-  "userId": "6ad6d88d783d4859cc756202",
+  "email": "issuer@fit.uit.edu.vn",
+  "password": "StrongPass123",
   "txHash": "0x64fe83cf267a0c390be06c5ea0abfd32627f8211d8c7e435c46048ad72ac3b9c",
   "logoUrl": null,
   "website": null
 }
 ```
 
-`userId` là optional; nếu có, user phải role `issuer` và chưa gắn ví khác.
+Truyền **một trong hai**:
+
+- `email` + `password`: backend tự tạo User role `issuer` và gán ví.
+- `userId`: gán issuer cho User đã tồn tại (User phải role `issuer`, chưa gắn ví khác).
+
+Không truyền đồng thời cả hai. Mật khẩu tối thiểu 8 ký tự.
 
 Backend kiểm tra:
 
@@ -235,7 +245,8 @@ Backend kiểm tra:
 2. Ví chưa thuộc user khác.
 3. Event `IssuerUpdated` khớp `issuer`, `name`, `active = true`.
 4. `getIssuer()` on-chain đang active.
-5. Tạo issuer + gán ví cho user.
+5. Tạo User issuer mới (nếu dùng `email`/`password`) hoặc dùng User có sẵn (`userId`).
+6. Tạo issuer + gán ví cho user.
 
 **201 Created**
 

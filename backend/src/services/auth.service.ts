@@ -27,27 +27,31 @@ export function toUserDTO(user: UserDocument): UserDTO {
   };
 }
 
+const INVALID_LOGIN_MESSAGE =
+  "Tài khoản, mật khẩu hoặc ví không đúng";
+
 export async function login(
   email: string,
-  password: string
+  password: string,
+  walletAddress: string
 ): Promise<LoginResult> {
   const user = await User.findOne({ email }).select("+passwordHash");
 
   if (!user || !user.isActive) {
-    throw new HttpError(
-      401,
-      "UNAUTHORIZED",
-      "Email hoặc mật khẩu không đúng"
-    );
+    throw new HttpError(401, "UNAUTHORIZED", INVALID_LOGIN_MESSAGE);
   }
 
   const passwordMatches = await bcrypt.compare(password, user.passwordHash);
   if (!passwordMatches) {
-    throw new HttpError(
-      401,
-      "UNAUTHORIZED",
-      "Email hoặc mật khẩu không đúng"
-    );
+    throw new HttpError(401, "UNAUTHORIZED", INVALID_LOGIN_MESSAGE);
+  }
+
+  const walletMatches =
+    !!user.walletAddress &&
+    user.walletAddress.toLowerCase() === walletAddress.toLowerCase();
+
+  if (!walletMatches) {
+    throw new HttpError(401, "UNAUTHORIZED", INVALID_LOGIN_MESSAGE);
   }
 
   user.lastLoginAt = new Date();

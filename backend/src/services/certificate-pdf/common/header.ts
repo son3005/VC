@@ -1,3 +1,4 @@
+import path from "node:path";
 import type { CertificatePdfInput } from "../types";
 import { COLORS, FONT, PAGE } from "./layout";
 
@@ -7,18 +8,15 @@ export function drawHeader(
 ): void {
   const { width } = PAGE;
 
-  doc.circle(66, 60, 21).fill(COLORS.navy);
-  doc
-    .fillColor(COLORS.background)
-    .font(FONT.bold)
-    .fontSize(9)
-    .text("UIT", 51, 55, { width: 30, align: "center" });
+  doc.image(path.join(__dirname, "..", "assets", "logo.png"), 44, 34, {
+    fit: [44, 44],
+  });
 
   doc
     .fillColor(COLORS.navy)
     .font(FONT.bold)
     .fontSize(13)
-    .text("TRƯỜNG ĐẠI HỌC CÔNG NGHỆ THÔNG TIN", 98, 42, {
+    .text("RACCOON UNIVERSITY", 98, 38, {
       width: 470,
     });
 
@@ -26,7 +24,7 @@ export function drawHeader(
     .fillColor(COLORS.muted)
     .font(FONT.body)
     .fontSize(8)
-    .text("ĐẠI HỌC QUỐC GIA THÀNH PHỐ HỒ CHÍ MINH", 98, 61, {
+    .text("LEARN & FORAGE", 98, 58, {
       width: 470,
     });
 
