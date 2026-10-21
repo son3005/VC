@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Be_Vietnam_Pro, Playfair_Display } from 'next/font/google';
 import './globals.css';
 import { Providers } from './providers';
@@ -19,12 +19,30 @@ const playfairDisplay = Playfair_Display({
   display: 'swap',
 });
 
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 5,
+  themeColor: '#010E1C',
+};
+
 export const metadata: Metadata = {
-  title: 'Xác Thực Văn Bằng Blockchain — Verify Certification',
+  title: {
+    default: 'Xác Thực Văn Bằng Blockchain — Verify Certification',
+    template: '%s | Xác Thực Văn Bằng Blockchain',
+  },
   description:
     'Hệ thống quản lý, cấp phát và xác minh văn bằng chứng chỉ minh bạch, chống làm giả dựa trên Ethereum Sepolia Blockchain và IPFS.',
   icons: {
     icon: '/logo.svg',
+  },
+  openGraph: {
+    title: 'Xác Thực Văn Bằng Blockchain — Ethereum Sepolia & IPFS',
+    description:
+      'Hệ thống quản lý, cấp phát và xác minh văn bằng chứng chỉ minh bạch, chống làm giả dựa trên Ethereum Sepolia Blockchain và IPFS.',
+    siteName: 'Hệ thống Xác thực Văn bằng Blockchain',
+    locale: 'vi_VN',
+    type: 'website',
   },
 };
 

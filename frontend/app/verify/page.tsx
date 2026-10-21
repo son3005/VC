@@ -128,29 +128,29 @@ export default function VerifyPage() {
 
         {/* Tab chuyển đổi */}
         <div className="flex justify-center">
-          <div className="p-1.5 rounded-2xl bg-[#FFFDF7] border border-[#E3D5B8] inline-flex items-center gap-1 shadow-2xs">
+          <div className="p-1.5 rounded-2xl bg-[#FFFDF7] border border-[#E3D5B8] flex flex-col sm:flex-row items-stretch sm:items-center gap-1 shadow-2xs w-full max-w-md sm:w-auto">
             <button
               onClick={() => setActiveTab('file')}
-              className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all ${
+              className={`flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all ${
                 activeTab === 'file'
                   ? 'bg-[#010E1C] text-[#E6AB42] shadow-xs'
                   : 'text-[#6F5C4A] hover:text-[#010E1C]'
               }`}
             >
-              <FileCheck className="w-4 h-4" />
-              <span>Xác thực bằng file PDF / Ảnh</span>
+              <FileCheck className="w-4 h-4 shrink-0" />
+              <span>Xác thực bằng file</span>
             </button>
 
             <button
               onClick={() => setActiveTab('code')}
-              className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all ${
+              className={`flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all ${
                 activeTab === 'code'
                   ? 'bg-[#010E1C] text-[#E6AB42] shadow-xs'
                   : 'text-[#6F5C4A] hover:text-[#010E1C]'
               }`}
             >
-              <KeyRound className="w-4 h-4" />
-              <span>Tra cứu theo mã chứng chỉ</span>
+              <KeyRound className="w-4 h-4 shrink-0" />
+              <span>Tra cứu theo mã</span>
             </button>
           </div>
         </div>
