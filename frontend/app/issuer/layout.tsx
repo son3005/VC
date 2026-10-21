@@ -61,8 +61,7 @@ export default function IssuerLayout({ children }: { children: React.ReactNode }
         <div className="bg-[#B23F4A] text-white py-2.5 px-4 text-xs font-medium flex items-center justify-center gap-2">
           <AlertTriangle className="w-4 h-4 shrink-0" />
           <span>
-            Ví MetaMask đang chọn (<code className="font-mono">{address}</code>) không khớp với ví đơn vị của bạn (
-            <code className="font-mono">{user.walletAddress}</code>). Vui lòng chuyển đúng ví để ký giao dịch!
+            Ví MetaMask đang chọn không khớp với ví của đơn vị này. Vui lòng chuyển đúng ví để ký giao dịch!
           </span>
         </div>
       )}

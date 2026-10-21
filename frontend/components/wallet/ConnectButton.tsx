@@ -111,7 +111,7 @@ export function ConnectButton({ className }: { className?: string }) {
         type="button"
         onClick={() => setMenuOpen((open) => !open)}
         className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[#FFFDF7] border border-[#E3D5B8] text-xs font-semibold text-[#010E1C] shadow-2xs hover:border-[#E6AB42] transition-colors"
-        title={`Ví: ${address} (Mạng Sepolia)`}
+        title="Ví đã kết nối (Mạng Sepolia)"
         aria-haspopup="menu"
         aria-expanded={menuOpen}
       >
@@ -135,7 +135,9 @@ export function ConnectButton({ className }: { className?: string }) {
               <CheckCircle2 className="w-3.5 h-3.5 text-[#E6AB42]" />
               <span>Ví đã kết nối</span>
             </div>
-            <p className="font-mono text-[11px] text-[#010E1C] break-all">{address}</p>
+            <p className="font-mono text-[11px] text-[#010E1C]">
+              {shortenAddress(address, 6)}
+            </p>
             <p className="text-[11px] text-[#6F5C4A]">Mạng: Sepolia (11155111)</p>
           </div>
 

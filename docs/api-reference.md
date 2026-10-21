@@ -127,9 +127,12 @@ Public. Rate limit **5 lần/phút/IP**.
 ```json
 {
   "email": "issuer@verifycert.local",
-  "password": "Issuer@123456"
+  "password": "Issuer@123456",
+  "walletAddress": "0xf009863379F6B0056C1D828fDE2827fD94202a1B"
 }
 ```
+
+Email, mật khẩu và ví phải khớp với cùng một tài khoản. Sai bất kỳ phần nào đều trả cùng một lỗi `401` để tránh lộ thông tin tài khoản/ví.
 
 **200 OK**
 
@@ -149,7 +152,7 @@ Public. Rate limit **5 lần/phút/IP**.
 }
 ```
 
-Sai mật khẩu → `401 UNAUTHORIZED`.
+Sai email, mật khẩu hoặc ví → `401 UNAUTHORIZED` với thông báo chung `Tài khoản, mật khẩu hoặc ví không đúng`.
 
 ### `GET /api/auth/me`
 

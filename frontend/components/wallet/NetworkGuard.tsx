@@ -87,15 +87,10 @@ export function NetworkGuard({ expectedWallet, children }: NetworkGuardProps) {
       <div className="p-4 rounded-xl border border-[#E6606A] bg-[#FFFDF7] text-sm text-[#010E1C] flex flex-col gap-2 my-4">
         <div className="flex items-center gap-2 text-[#B23F4A] font-semibold">
           <AlertTriangle className="w-5 h-5 shrink-0" />
-          <span>Địa chỉ ví không khớp với tài khoản đăng nhập!</span>
+          <span>Ví đang kết nối không khớp với tài khoản đăng nhập!</span>
         </div>
         <p className="text-xs text-[#6F5C4A]">
-          Tài khoản yêu cầu ví: <code className="font-mono text-[#010E1C]">{expectedWallet}</code>
-          <br />
-          Ví hiện đang kết nối trong MetaMask: <code className="font-mono text-[#B23F4A]">{address}</code>
-        </p>
-        <p className="text-xs text-[#6F5C4A]">
-          Vui lòng mở MetaMask và đổi sang đúng tài khoản được cấp quyền.
+          Vui lòng mở MetaMask và chuyển sang đúng tài khoản đã đăng ký với tài khoản này.
         </p>
       </div>
     );

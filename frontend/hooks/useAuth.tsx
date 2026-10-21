@@ -10,7 +10,7 @@ interface AuthContextType {
   isLoading: boolean;
   isAuthenticated: boolean;
   role: Role | null;
-  login: (email: string, password: string) => Promise<User>;
+  login: (email: string, password: string, walletAddress: string) => Promise<User>;
   logout: () => void;
   refreshUser: () => Promise<void>;
 }
@@ -77,10 +77,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     refreshUser();
   }, [refreshUser]);
 
-  const login = async (email: string, password: string): Promise<User> => {
+  const login = async (
+    email: string,
+    password: string,
+    walletAddress: string
+  ): Promise<User> => {
     setIsLoading(true);
     try {
-      const res = await api.login(email, password);
+      const res = await api.login(email, password, walletAddress);
       const { token: receivedToken, user: loggedInUser } = res.data;
       localStorage.setItem('vc_token', receivedToken);
       localStorage.setItem('vc_user', JSON.stringify(loggedInUser));
