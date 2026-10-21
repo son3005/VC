@@ -234,7 +234,7 @@ export default function IssuerDashboardPage() {
                       return (
                         <tr
                           key={cert.certificateId}
-                          onClick={() => router.push(`/c/${encodeURIComponent(cert.certificateId)}`)}
+                          onClick={() => router.push(`/issuer/certificates/${encodeURIComponent(cert.certificateId)}`)}
                           className="hover:bg-[#FAF4DF]/60 cursor-pointer transition-colors group"
                         >
                           <td className="px-5 py-4 whitespace-nowrap">
