@@ -53,4 +53,8 @@ export const issuerListQuerySchema = paginationSchema.extend({
     .transform((value) => (value === undefined ? undefined : value === "true")),
 });
 
+export const deactivateIssuerSchema = z.object({
+  txHash: txHashSchema,
+});
+
 export type CreateIssuerInput = z.infer<typeof createIssuerSchema>;

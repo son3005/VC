@@ -1,6 +1,6 @@
 export type CertificateType = "degree" | "course" | "credit" | "other";
 export type ArtifactType = "pdf" | "image" | "web";
-export type CertificateStatus = "active" | "revoked";
+export type CertificateStatus = "active" | "revoked" | "locked";
 
 export interface DegreeDetails {
   degreeTitle: string;

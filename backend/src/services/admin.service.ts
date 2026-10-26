@@ -2,6 +2,7 @@ import { Certificate, Issuer, User } from "../models";
 import type { CertificateType } from "../types/certificate";
 import {
   createIssuer as createIssuerFn,
+  deactivateIssuer as deactivateIssuerFn,
   IssuerService,
   listIssuers as listIssuersFn,
 } from "./issuer.service";
@@ -12,6 +13,7 @@ export interface AdminStats {
     total: number;
     active: number;
     revoked: number;
+    locked: number;
   };
   issuers: {
     total: number;
@@ -34,6 +36,7 @@ export async function getAdminStats(): Promise<AdminStats> {
     total,
     active,
     revoked,
+    locked,
     totalIssuers,
     activeIssuers,
     users,
@@ -43,6 +46,7 @@ export async function getAdminStats(): Promise<AdminStats> {
     Certificate.countDocuments({}),
     Certificate.countDocuments({ status: "active" }),
     Certificate.countDocuments({ status: "revoked" }),
+    Certificate.countDocuments({ status: "locked" }),
     Issuer.countDocuments({}),
     Issuer.countDocuments({ isActive: true }),
     User.countDocuments({ isActive: true }),
@@ -64,7 +68,7 @@ export async function getAdminStats(): Promise<AdminStats> {
   }
 
   return {
-    certificates: { total, active, revoked },
+    certificates: { total, active, revoked, locked },
     issuers: { total: totalIssuers, active: activeIssuers },
     users,
     byType,
@@ -87,6 +91,7 @@ export class AdminService extends IssuerService {
   getStats = getAdminStats;
   listIssuers = listIssuersFn;
   createIssuer = createIssuerFn;
+  deactivateIssuer = deactivateIssuerFn;
   syncStatus = getSyncStatus;
   syncEvents = backfillEvents;
 }

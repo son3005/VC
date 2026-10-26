@@ -110,6 +110,44 @@ export async function getCertificateController(
   }
 }
 
+export async function lockCertificateController(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const { id } = certificateIdParamSchema.parse(req.params);
+    const { txHash } = revokeCertificateSchema.parse(req.body);
+    const certificate = await issuerService.lockCertificate(
+      id,
+      txHash,
+      getActor(req)
+    );
+    res.json({ success: true, data: certificate });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function unlockCertificateController(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const { id } = certificateIdParamSchema.parse(req.params);
+    const { txHash } = revokeCertificateSchema.parse(req.body);
+    const certificate = await issuerService.unlockCertificate(
+      id,
+      txHash,
+      getActor(req)
+    );
+    res.json({ success: true, data: certificate });
+  } catch (error) {
+    next(error);
+  }
+}
+
 export async function revokeCertificateController(
   req: Request,
   res: Response,

@@ -15,7 +15,8 @@ interface ICertificateRegistry {
     /// @param ipfsCid CID của file PDF trên IPFS.
     /// @param issuer Địa chỉ ví đã cấp chứng chỉ.
     /// @param issuedAt Thời điểm cấp (giây UNIX).
-    /// @param isRevoked Đã bị thu hồi hay chưa.
+    /// @param isRevoked Đã bị thu hồi vĩnh viễn hay chưa.
+    /// @param isLocked Đang bị tạm khoá hay không.
     struct Certificate {
         string certificateId;
         string fileHash;
@@ -23,6 +24,7 @@ interface ICertificateRegistry {
         address issuer;
         uint64 issuedAt;
         bool isRevoked;
+        bool isLocked;
     }
 
     /// @notice Đơn vị được phép cấp chứng chỉ (khoa, phòng ban).
@@ -51,6 +53,18 @@ interface ICertificateRegistry {
         bytes32 indexed idHash,
         address indexed issuer,
         uint64 revokedAt
+    );
+
+    event CertificateLocked(
+        bytes32 indexed idHash,
+        address indexed issuer,
+        uint64 lockedAt
+    );
+
+    event CertificateUnlocked(
+        bytes32 indexed idHash,
+        address indexed issuer,
+        uint64 unlockedAt
     );
 
     event IssuerUpdated(address indexed issuer, string name, bool active);
@@ -84,6 +98,10 @@ interface ICertificateRegistry {
     ) external;
 
     function revokeCertificate(string calldata certificateId) external;
+
+    function lockCertificate(string calldata certificateId) external;
+
+    function unlockCertificate(string calldata certificateId) external;
 
     // ---------------------------------------------------------------------
     // Truy vấn

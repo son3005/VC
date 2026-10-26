@@ -3,6 +3,7 @@ import type { FilterQuery } from "mongoose";
 import { env } from "../config/env";
 import {
   Certificate,
+  ChainEvent,
   Issuer,
   User,
   type IIssuer,
@@ -20,6 +21,8 @@ import {
   CertificateService,
   confirmCertificate,
   listIssuerCertificates,
+  lockCertificate,
+  unlockCertificate,
 } from "./certificate.service";
 import {
   findIssuerUpdatedEvent,
@@ -241,10 +244,64 @@ export async function createIssuer(
   return toIssuerDTO(issuer);
 }
 
+export async function deactivateIssuer(
+  issuerId: string,
+  txHash: string
+): Promise<IssuerDTO> {
+  const issuer = await Issuer.findById(issuerId);
+
+  if (!issuer) {
+    throw new HttpError(404, "ISSUER_NOT_FOUND", "Không tìm thấy đơn vị cấp");
+  }
+
+  if (!issuer.isActive && !issuer.onChainActive) {
+    return toIssuerDTO(issuer);
+  }
+
+  const event = await findIssuerUpdatedEvent(
+    txHash,
+    issuer.walletAddress,
+    issuer.name,
+    false
+  );
+  const onChain = await getIssuerOnChain(issuer.walletAddress);
+
+  if (onChain.active) {
+    throw new HttpError(422, "TX_INVALID", "Issuer vẫn đang active on-chain");
+  }
+
+  issuer.isActive = false;
+  issuer.onChainActive = false;
+  await issuer.save();
+
+  await ChainEvent.create({
+    txHash,
+    logIndex: event.logIndex,
+    blockNumber: event.blockNumber,
+    eventType: "IssuerUpdated",
+    payload: {
+      issuer: issuer.walletAddress,
+      name: issuer.name,
+      active: false,
+    },
+    contractAddress: env.CONTRACT_ADDRESS.toLowerCase(),
+    processedAt: new Date(),
+  }).catch((error) => {
+    const message = error instanceof Error ? error.message : String(error);
+    if (!message.includes("duplicate key")) {
+      console.error("[chain-event] issuer deactivate insert failed:", message);
+    }
+  });
+
+  return toIssuerDTO(issuer);
+}
+
 export class IssuerService extends CertificateService {
   confirmCertificate = confirmCertificate;
   listIssuerCertificates = listIssuerCertificates;
   prepareCertificate = prepareCertificate;
+  lockCertificate = lockCertificate;
+  unlockCertificate = unlockCertificate;
 }
 
 export const issuerService = new IssuerService();

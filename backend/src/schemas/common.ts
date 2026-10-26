@@ -35,7 +35,7 @@ export const paginationSchema = z.object({
 });
 
 export const artifactTypeSchema = z.enum(["pdf", "image", "web"]);
-export const certificateStatusSchema = z.enum(["active", "revoked"]);
+export const certificateStatusSchema = z.enum(["active", "revoked", "locked"]);
 export const certificateTypeSchema = z.enum([
   "degree",
   "course",

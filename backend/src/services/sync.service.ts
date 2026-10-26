@@ -39,6 +39,8 @@ export interface BackfillResult {
   processed: number;
   issued: number;
   revoked: number;
+  locked: number;
+  unlocked: number;
   issuers: number;
   skipped: number;
 }
@@ -108,7 +110,47 @@ async function applyEvent(event: ParsedEvent, log: Log): Promise<void> {
             revokedAt: new Date(Number(event.args.revokedAt) * 1000),
             revokeTxHash: log.transactionHash.toLowerCase(),
             revokeBlockNumber: log.blockNumber,
+            lockedAt: null,
+            lockTxHash: null,
+            lockBlockNumber: null,
           },
+        }
+      );
+    }
+    return;
+  }
+
+  if (event.name === "CertificateLocked" || event.name === "CertificateUnlocked") {
+    const idHash = String(event.args.idHash);
+    const cert = await Certificate.findOne({ certificateIdHash: idHash });
+
+    if (!cert) {
+      console.warn(
+        `[sync] ${event.name} event without metadata: ${idHash} (${log.transactionHash})`
+      );
+      return;
+    }
+
+    if (cert.status === "revoked") return;
+
+    if (event.name === "CertificateLocked") {
+      await Certificate.updateOne(
+        { _id: cert._id },
+        {
+          $set: {
+            status: "locked",
+            lockedAt: new Date(Number(event.args.lockedAt) * 1000),
+            lockTxHash: log.transactionHash.toLowerCase(),
+            lockBlockNumber: log.blockNumber,
+          },
+        }
+      );
+    } else {
+      await Certificate.updateOne(
+        { _id: cert._id },
+        {
+          $set: { status: "active" },
+          $unset: { lockedAt: 1, lockTxHash: 1, lockBlockNumber: 1 },
         }
       );
     }
@@ -120,7 +162,10 @@ async function applyEvent(event: ParsedEvent, log: Log): Promise<void> {
     const active = Boolean(event.args.active);
     const name = String(event.args.name);
 
-    const updates: Record<string, unknown> = { onChainActive: active };
+    const updates: Record<string, unknown> = {
+      onChainActive: active,
+      isActive: active,
+    };
     if (name) updates.name = name;
     if (active) updates.chainAddedAt = new Date();
 
@@ -192,6 +237,8 @@ export async function backfillEvents(
     processed: 0,
     issued: 0,
     revoked: 0,
+    locked: 0,
+    unlocked: 0,
     issuers: 0,
     skipped: 0,
   };
@@ -225,6 +272,8 @@ export async function backfillEvents(
         result.processed += 1;
         if (event.name === "CertificateIssued") result.issued += 1;
         if (event.name === "CertificateRevoked") result.revoked += 1;
+        if (event.name === "CertificateLocked") result.locked += 1;
+        if (event.name === "CertificateUnlocked") result.unlocked += 1;
         if (event.name === "IssuerUpdated") result.issuers += 1;
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);

@@ -299,6 +299,64 @@ describe("CertificateRegistry", () => {
     });
   });
 
+  describe("Temporary locking", () => {
+    it("allows the issuing issuer to lock and unlock", async () => {
+      const { registry, issuer } = await loadFixture(issuedFixture);
+
+      await expect(registry.connect(issuer).lockCertificate(CERT_ID))
+        .to.emit(registry, "CertificateLocked")
+        .withArgs(idHash(CERT_ID), issuer.address, anyValue);
+
+      let cert = await registry.getCertificate(CERT_ID);
+      expect(cert.isLocked).to.equal(true);
+      expect(await registry.isValid(CERT_ID)).to.equal(false);
+
+      await expect(registry.connect(issuer).unlockCertificate(CERT_ID))
+        .to.emit(registry, "CertificateUnlocked")
+        .withArgs(idHash(CERT_ID), issuer.address, anyValue);
+
+      cert = await registry.getCertificate(CERT_ID);
+      expect(cert.isLocked).to.equal(false);
+      expect(await registry.isValid(CERT_ID)).to.equal(true);
+    });
+
+    it("rejects locking by a non-issuer", async () => {
+      const { registry, other } = await loadFixture(issuedFixture);
+
+      await expect(
+        registry.connect(other).lockCertificate(CERT_ID)
+      ).to.be.revertedWithCustomError(registry, "NotIssuer");
+    });
+
+    it("rejects double locking", async () => {
+      const { registry, issuer } = await loadFixture(issuedFixture);
+      await registry.connect(issuer).lockCertificate(CERT_ID);
+
+      await expect(
+        registry.connect(issuer).lockCertificate(CERT_ID)
+      ).to.be.revertedWithCustomError(registry, "AlreadyLocked");
+    });
+
+    it("allows owner to unlock and rejects unlocking an active certificate", async () => {
+      const { registry, owner, issuer } = await loadFixture(issuedFixture);
+      await registry.connect(issuer).lockCertificate(CERT_ID);
+
+      await registry.connect(owner).unlockCertificate(CERT_ID);
+      await expect(
+        registry.connect(issuer).unlockCertificate(CERT_ID)
+      ).to.be.revertedWithCustomError(registry, "NotLocked");
+    });
+
+    it("rejects locking a revoked certificate", async () => {
+      const { registry, issuer } = await loadFixture(issuedFixture);
+      await registry.connect(issuer).revokeCertificate(CERT_ID);
+
+      await expect(
+        registry.connect(issuer).lockCertificate(CERT_ID)
+      ).to.be.revertedWithCustomError(registry, "AlreadyRevoked");
+    });
+  });
+
   describe("Revocation", () => {
     it("allows the issuing issuer to revoke", async () => {
       const { registry, issuer } = await loadFixture(issuedFixture);
