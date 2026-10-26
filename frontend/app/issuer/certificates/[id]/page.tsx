@@ -19,6 +19,8 @@ import { useWallet } from '@/hooks/useWallet';
 import { api, ApiRequestError } from '@/lib/api';
 import {
   revokeCertificateOnChain,
+  lockCertificateOnChain,
+  unlockCertificateOnChain,
   assertCorrectNetworkAndSigner,
 } from '@/lib/contract';
 import { formatDate } from '@/lib/format';
@@ -30,6 +32,8 @@ import {
   ExternalLink,
   ShieldAlert,
   Trash2,
+  Lock,
+  Unlock,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -49,6 +53,9 @@ export default function IssuerCertificateDetailPage() {
   const [revokeTxHash, setRevokeTxHash] = useState<string | null>(null);
   const [revokeError, setRevokeError] = useState<string | null>(null);
 
+  const [isLockModalOpen, setIsLockModalOpen] = useState(false);
+  const [isLocking, setIsLocking] = useState(false);
+
   const {
     data: certData,
     isLoading,
@@ -64,6 +71,7 @@ export default function IssuerCertificateDetailPage() {
 
   const cert = certData?.data;
   const isRevoked = cert?.status === 'revoked';
+  const isLocked = cert?.status === 'locked';
 
   // Xử lý thu hồi on-chain + gọi API backend
   const handleConfirmRevoke = async () => {
@@ -116,6 +124,37 @@ export default function IssuerCertificateDetailPage() {
       }
     } finally {
       setIsRevoking(false);
+    }
+  };
+
+  const handleConfirmLock = async () => {
+    if (!cert) return;
+    setIsLocking(true);
+
+    try {
+      await assertCorrectNetworkAndSigner(user?.walletAddress);
+
+      if (cert.status === 'locked') {
+        const tx = await unlockCertificateOnChain(certificateId);
+        await api.unlockCertificate(certificateId, tx);
+        toast.success('Đã mở khoá chứng chỉ thành công.');
+      } else {
+        const tx = await lockCertificateOnChain(certificateId);
+        await api.lockCertificate(certificateId, tx);
+        toast.success('Đã tạm khoá chứng chỉ thành công.');
+      }
+
+      setIsLockModalOpen(false);
+      refetch();
+    } catch (err: unknown) {
+      const errorObj = err as { code?: number | string; message?: string };
+      if (errorObj?.code === 4001) {
+        toast.error('Bạn đã từ chối ký giao dịch.');
+      } else {
+        toast.error(errorObj?.message || 'Không thể thay đổi trạng thái khoá.');
+      }
+    } finally {
+      setIsLocking(false);
     }
   };
 
@@ -189,6 +228,19 @@ export default function IssuerCertificateDetailPage() {
               </Button>
             </Link>
 
+            {/* Nút tạm khoá / mở khoá */}
+            {!isRevoked && (
+              <Button
+                variant={isLocked ? 'secondary' : 'outline'}
+                size="sm"
+                onClick={() => setIsLockModalOpen(true)}
+                className="gap-1.5 text-xs h-8"
+              >
+                {isLocked ? <Unlock className="w-3.5 h-3.5" /> : <Lock className="w-3.5 h-3.5" />}
+                <span>{isLocked ? 'Mở khoá' : 'Tạm khoá'}</span>
+              </Button>
+            )}
+
             {/* Nút Thu hồi văn bằng */}
             {!isRevoked ? (
               <Button
@@ -224,6 +276,27 @@ export default function IssuerCertificateDetailPage() {
                 <div className="pt-2 text-xs font-mono">
                   <span>Mã giao dịch thu hồi: </span>
                   <TxLink txHash={cert.revokeTxHash} shortenChars={12} />
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Banner tạm khoá */}
+        {isLocked && (
+          <div className="p-4 sm:p-5 rounded-2xl border-2 border-[#E6AB42] bg-[#E6AB42]/10 text-[#8A6418] flex items-start gap-3.5 shadow-sm">
+            <Lock className="w-6 h-6 shrink-0 mt-0.5" />
+            <div className="space-y-1">
+              <h4 className="font-serif font-bold text-base sm:text-lg uppercase tracking-wide">
+                Văn bằng đang tạm khoá
+              </h4>
+              <p className="text-xs sm:text-sm text-[#8A6418]/90 leading-relaxed">
+                Văn bằng tạm thời không có giá trị xác thực. Bạn có thể mở khoá để sử dụng lại.
+              </p>
+              {cert.lockTxHash && (
+                <div className="pt-2 text-xs font-mono">
+                  <span>Mã giao dịch khoá: </span>
+                  <TxLink txHash={cert.lockTxHash} shortenChars={12} />
                 </div>
               )}
             </div>
@@ -296,6 +369,56 @@ export default function IssuerCertificateDetailPage() {
             </div>
           </div>
         </div>
+
+        {/* Modal xác nhận tạm khoá / mở khoá */}
+        <Modal
+          isOpen={isLockModalOpen}
+          onClose={() => {
+            if (!isLocking) setIsLockModalOpen(false);
+          }}
+          title={isLocked ? 'Mở khoá văn bằng' : 'Tạm khoá văn bằng'}
+          maxWidth="md"
+        >
+          <div className="space-y-4 pt-2">
+            <div className="p-4 rounded-xl border border-[#E6AB42] bg-[#E6AB42]/10 text-xs text-[#8A6418] flex items-start gap-2.5">
+              {isLocked ? <Unlock className="w-5 h-5 shrink-0" /> : <Lock className="w-5 h-5 shrink-0" />}
+              <div className="space-y-1 leading-relaxed">
+                <strong>{isLocked ? 'MỞ KHOÁ VĂN BẰNG' : 'TẠM KHOÁ VĂN BẰNG'}</strong>
+                <p>
+                  {isLocked
+                    ? 'Sau khi mở khoá, văn bằng trở lại trạng thái hợp lệ và có thể xác thực bình thường.'
+                    : 'Văn bằng sẽ tạm thời không còn giá trị xác thực. Bạn có thể mở khoá lại sau.'}
+                </p>
+              </div>
+            </div>
+
+            <p className="text-xs text-[#6F5C4A]">
+              Mã văn bằng: <strong className="font-mono text-[#010E1C]">{certificateId}</strong>
+            </p>
+
+            <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#E3D5B8]/60">
+              <Button
+                variant="outline"
+                size="md"
+                onClick={() => setIsLockModalOpen(false)}
+                disabled={isLocking}
+              >
+                Hủy bỏ
+              </Button>
+              <Button
+                variant={isLocked ? 'secondary' : 'primary'}
+                size="md"
+                isLoading={isLocking}
+                disabled={!isCorrectNetwork}
+                onClick={handleConfirmLock}
+                className="gap-2"
+              >
+                {isLocked ? <Unlock className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
+                <span>{isLocked ? 'Xác nhận mở khoá' : 'Xác nhận tạm khoá'}</span>
+              </Button>
+            </div>
+          </div>
+        </Modal>
 
         {/* Modal Xác nhận thu hồi an toàn */}
         <Modal

@@ -1,5 +1,5 @@
 export type Role = 'admin' | 'issuer';
-export type CertificateStatus = 'active' | 'revoked';
+export type CertificateStatus = 'active' | 'revoked' | 'locked';
 export type CertificateType = 'degree' | 'course' | 'credit' | 'other';
 export type ArtifactType = 'pdf' | 'image' | 'web';
 
@@ -98,10 +98,12 @@ export interface CertificateIssuer {
   txHash: string;
   revokedAt: string | null;
   revokeTxHash: string | null;
+  lockedAt: string | null;
+  lockTxHash: string | null;
 }
 
 export interface AdminStats {
-  certificates: { total: number; active: number; revoked: number };
+  certificates: { total: number; active: number; revoked: number; locked: number };
   issuers: { total: number; active: number };
   users: number;
   byType: Record<CertificateType, number>;

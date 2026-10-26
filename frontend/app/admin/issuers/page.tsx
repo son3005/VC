@@ -13,7 +13,12 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { useAuth } from '@/hooks/useAuth';
 import { useWallet } from '@/hooks/useWallet';
 import { api } from '@/lib/api';
-import { addIssuerOnChain, assertCorrectNetworkAndSigner } from '@/lib/contract';
+import {
+  addIssuerOnChain,
+  removeIssuerOnChain,
+  assertCorrectNetworkAndSigner,
+} from '@/lib/contract';
+import type { Issuer } from '@/types/api';
 import {
   Building2,
   PlusCircle,
@@ -21,6 +26,8 @@ import {
   XCircle,
   ExternalLink,
   ShieldCheck,
+  Lock,
+  AlertTriangle,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -43,6 +50,9 @@ export default function AdminIssuersPage() {
   const [txState, setTxState] = useState<TxState>('idle');
   const [txHash, setTxHash] = useState<string | null>(null);
   const [txError, setTxError] = useState<string | null>(null);
+
+  const [deactivatingIssuer, setDeactivatingIssuer] = useState<Issuer | null>(null);
+  const [isDeactivating, setIsDeactivating] = useState(false);
 
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['adminIssuers'],
@@ -146,6 +156,29 @@ export default function AdminIssuersPage() {
     }
   };
 
+  const handleDeactivateIssuer = async () => {
+    if (!deactivatingIssuer) return;
+    setIsDeactivating(true);
+
+    try {
+      await assertCorrectNetworkAndSigner(user?.walletAddress);
+      const txHash = await removeIssuerOnChain(deactivatingIssuer.walletAddress);
+      await api.deactivateIssuer(deactivatingIssuer.id, txHash);
+      toast.success('Đã khoá quyền cấp chứng chỉ của đơn vị.');
+      setDeactivatingIssuer(null);
+      refetch();
+    } catch (err: unknown) {
+      const errorObj = err as { code?: number | string; message?: string };
+      if (errorObj?.code === 4001) {
+        toast.error('Bạn đã từ chối ký giao dịch.');
+      } else {
+        toast.error(errorObj?.message || 'Không thể khoá đơn vị cấp.');
+      }
+    } finally {
+      setIsDeactivating(false);
+    }
+  };
+
   return (
     <div className="py-8 sm:py-12 flex-1 flex flex-col">
       <Container className="space-y-8">
@@ -229,6 +262,9 @@ export default function AdminIssuersPage() {
                     <th scope="col" className="px-4 py-3.5 text-right">
                       Website
                     </th>
+                    <th scope="col" className="px-4 py-3.5 text-right">
+                      Thao tác
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#E3D5B8]/60">
@@ -285,6 +321,24 @@ export default function AdminIssuersPage() {
                           </a>
                         ) : (
                           <span className="text-[#A48B73]">—</span>
+                        )}
+                      </td>
+
+                      <td className="px-4 py-4 whitespace-nowrap text-right">
+                        {issuer.isActive ? (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="gap-1.5 text-[#B23F4A] border-[#E6606A]/40"
+                            onClick={() => setDeactivatingIssuer(issuer)}
+                          >
+                            <Lock className="w-3.5 h-3.5" />
+                            <span>Khoá</span>
+                          </Button>
+                        ) : (
+                          <span className="text-[11px] font-semibold text-[#A48B73]">
+                            Đã khoá
+                          </span>
                         )}
                       </td>
                     </tr>
@@ -416,6 +470,56 @@ export default function AdminIssuersPage() {
               </Button>
             </div>
           </form>
+        </Modal>
+
+        {/* Modal khoá issuer */}
+        <Modal
+          isOpen={!!deactivatingIssuer}
+          onClose={() => {
+            if (!isDeactivating) setDeactivatingIssuer(null);
+          }}
+          title="Khoá quyền cấp chứng chỉ"
+          maxWidth="md"
+        >
+          <div className="space-y-4 pt-2">
+            <div className="p-4 rounded-xl border border-[#E6606A] bg-[#E6606A]/10 text-xs text-[#B23F4A] flex items-start gap-2.5">
+              <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5" />
+              <div className="space-y-1 leading-relaxed">
+                <strong>ĐƠN VỊ SẼ KHÔNG THỂ CẤP CHỨNG CHỈ MỚI</strong>
+                <p>
+                  Giao dịch <code>removeIssuer</code> sẽ được ký on-chain. Các chứng chỉ cũ vẫn tra cứu được.
+                </p>
+              </div>
+            </div>
+
+            <p className="text-xs text-[#6F5C4A]">
+              Đơn vị: <strong className="text-[#010E1C]">{deactivatingIssuer?.name}</strong>
+              <br />
+              Mã: <strong className="font-mono">{deactivatingIssuer?.code}</strong>
+            </p>
+
+            <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#E3D5B8]/60">
+              <Button
+                variant="outline"
+                size="md"
+                onClick={() => setDeactivatingIssuer(null)}
+                disabled={isDeactivating}
+              >
+                Hủy bỏ
+              </Button>
+              <Button
+                variant="danger"
+                size="md"
+                isLoading={isDeactivating}
+                disabled={!isCorrectNetwork}
+                onClick={handleDeactivateIssuer}
+                className="gap-2"
+              >
+                <Lock className="w-4 h-4" />
+                <span>Xác nhận khoá on-chain</span>
+              </Button>
+            </div>
+          </div>
         </Modal>
       </Container>
     </div>

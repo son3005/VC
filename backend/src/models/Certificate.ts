@@ -52,6 +52,10 @@ export interface ICertificate {
   revokeTxHash?: string | null;
   revokeBlockNumber?: number | null;
 
+  lockedAt?: Date | null;
+  lockTxHash?: string | null;
+  lockBlockNumber?: number | null;
+
   metadataHash?: string | null;
 
   createdAt: Date;
@@ -218,7 +222,7 @@ const certificateSchema = new Schema<ICertificate>(
     status: {
       type: String,
       required: true,
-      enum: ["active", "revoked"],
+      enum: ["active", "revoked", "locked"],
       default: "active",
     },
     revokedAt: {
@@ -231,6 +235,20 @@ const certificateSchema = new Schema<ICertificate>(
       lowercase: true,
     },
     revokeBlockNumber: {
+      type: Number,
+      default: null,
+    },
+
+    lockedAt: {
+      type: Date,
+      default: null,
+    },
+    lockTxHash: {
+      type: String,
+      default: null,
+      lowercase: true,
+    },
+    lockBlockNumber: {
       type: Number,
       default: null,
     },

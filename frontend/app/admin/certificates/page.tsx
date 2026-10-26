@@ -128,6 +128,7 @@ export default function AdminCertificatesPage() {
     { value: 'all', label: 'Tất cả trạng thái' },
     { value: 'active', label: 'Hợp lệ' },
     { value: 'revoked', label: 'Đã thu hồi' },
+    { value: 'locked', label: 'Tạm khoá' },
   ];
 
   const typeOptions = [
@@ -292,7 +293,7 @@ export default function AdminCertificatesPage() {
                             onClick={(e) => e.stopPropagation()}
                           >
                             <div className="flex items-center justify-end gap-1.5">
-                              {cert.status === 'active' && (
+                              {cert.status !== 'revoked' && (
                                 <Button
                                   variant="danger"
                                   size="sm"

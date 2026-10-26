@@ -108,4 +108,6 @@ export interface CertificateIssuerDTO {
   txHash: string;
   revokedAt: string | null;
   revokeTxHash: string | null;
+  lockedAt: string | null;
+  lockTxHash: string | null;
 }

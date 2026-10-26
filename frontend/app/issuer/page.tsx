@@ -62,6 +62,7 @@ export default function IssuerDashboardPage() {
     { value: 'all', label: 'Tất cả trạng thái' },
     { value: 'active', label: 'Đang hiệu lực' },
     { value: 'revoked', label: 'Đã thu hồi' },
+    { value: 'locked', label: 'Tạm khoá' },
   ];
 
   return (

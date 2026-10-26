@@ -21,4 +21,5 @@ export const CERTIFICATE_TYPE_LABELS: Record<string, string> = {
 export const CERTIFICATE_STATUS_LABELS: Record<string, string> = {
   active: 'Hợp lệ',
   revoked: 'Đã thu hồi',
+  locked: 'Tạm khoá',
 };

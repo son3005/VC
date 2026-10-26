@@ -1,8 +1,8 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
-import { CheckCircle2, AlertOctagon, HelpCircle, Loader2 } from 'lucide-react';
+import { CheckCircle2, AlertOctagon, HelpCircle, Loader2, Lock } from 'lucide-react';
 
-export type StatusType = 'active' | 'revoked' | 'not_found' | 'loading';
+export type StatusType = 'active' | 'revoked' | 'locked' | 'not_found' | 'loading';
 
 export interface StatusBadgeProps {
   status: StatusType;
@@ -26,6 +26,11 @@ export function StatusBadge({ status, className, size = 'md' }: StatusBadgeProps
       label: 'Đã thu hồi',
       style: 'bg-[#E6606A]/15 text-[#B23F4A] border border-[#E6606A]/30',
       icon: <AlertOctagon className="w-3.5 h-3.5 text-[#B23F4A]" />,
+    },
+    locked: {
+      label: 'Tạm khoá',
+      style: 'bg-[#E6AB42]/15 text-[#8A6418] border border-[#E6AB42]/40',
+      icon: <Lock className="w-3.5 h-3.5 text-[#8A6418]" />,
     },
     not_found: {
       label: 'Không tồn tại',

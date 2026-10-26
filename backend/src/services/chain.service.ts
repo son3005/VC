@@ -23,7 +23,8 @@ export interface IssuerUpdatedEvent {
 export async function findIssuerUpdatedEvent(
   txHash: string,
   wallet: string,
-  expectedName: string
+  expectedName: string,
+  expectedActive = true
 ): Promise<IssuerUpdatedEvent> {
   let receipt;
 
@@ -62,7 +63,11 @@ export async function findIssuerUpdatedEvent(
     const name = String(parsed.args.name);
     const active = Boolean(parsed.args.active);
 
-    if (issuer === wallet.toLowerCase() && active && name === expectedName) {
+    if (
+      issuer === wallet.toLowerCase() &&
+      active === expectedActive &&
+      name === expectedName
+    ) {
       return {
         blockNumber: receipt.blockNumber,
         logIndex: log.index,
@@ -175,6 +180,7 @@ export interface OnChainCertificate {
   issuer: string;
   issuedAt: number;
   isRevoked: boolean;
+  isLocked: boolean;
 }
 
 export async function getCertificateOnChain(
@@ -190,6 +196,7 @@ export async function getCertificateOnChain(
       issuer: String(result.issuer),
       issuedAt: Number(result.issuedAt),
       isRevoked: Boolean(result.isRevoked),
+      isLocked: Boolean(result.isLocked),
     };
   } catch (error) {
     const code = (error as { code?: string }).code;
@@ -260,6 +267,84 @@ export async function findCertificateRevokedEvent(
     422,
     "TX_INVALID",
     "Không tìm thấy sự kiện CertificateRevoked khớp chứng chỉ"
+  );
+}
+
+export interface CertificateLockEvent {
+  blockNumber: number;
+  logIndex: number;
+  timestamp: number;
+}
+
+async function findCertificateLockEvent(
+  txHash: string,
+  certificateId: string,
+  eventName: "CertificateLocked" | "CertificateUnlocked",
+  timestampArg: "lockedAt" | "unlockedAt"
+): Promise<CertificateLockEvent> {
+  let receipt;
+
+  try {
+    receipt = await provider.getTransactionReceipt(txHash);
+  } catch {
+    throw new HttpError(502, "CHAIN_ERROR", "Không đọc được giao dịch từ blockchain");
+  }
+
+  if (!receipt || receipt.status !== 1) {
+    throw new HttpError(
+      422,
+      "TX_INVALID",
+      "Giao dịch không tồn tại hoặc đã thất bại"
+    );
+  }
+
+  const event = registry.interface.getEvent(eventName);
+  if (!event) {
+    throw new HttpError(500, "INTERNAL_ERROR", `ABI thiếu event ${eventName}`);
+  }
+
+  const expectedIdHash = keccak256(toUtf8Bytes(certificateId));
+
+  for (const log of receipt.logs) {
+    if (log.address.toLowerCase() !== env.CONTRACT_ADDRESS.toLowerCase()) {
+      continue;
+    }
+    if (log.topics[0] !== event.topicHash) continue;
+
+    const parsed = registry.interface.parseLog(log);
+    if (!parsed) continue;
+
+    if (String(parsed.args.idHash).toLowerCase() === expectedIdHash.toLowerCase()) {
+      return {
+        blockNumber: receipt.blockNumber,
+        logIndex: log.index,
+        timestamp: Number(parsed.args[timestampArg]),
+      };
+    }
+  }
+
+  throw new HttpError(
+    422,
+    "TX_INVALID",
+    `Không tìm thấy sự kiện ${eventName} khớp chứng chỉ`
+  );
+}
+
+export function findCertificateLockedEvent(txHash: string, certificateId: string) {
+  return findCertificateLockEvent(
+    txHash,
+    certificateId,
+    "CertificateLocked",
+    "lockedAt"
+  );
+}
+
+export function findCertificateUnlockedEvent(txHash: string, certificateId: string) {
+  return findCertificateLockEvent(
+    txHash,
+    certificateId,
+    "CertificateUnlocked",
+    "unlockedAt"
   );
 }
 

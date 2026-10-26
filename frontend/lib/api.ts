@@ -140,6 +140,18 @@ export const api = {
       body: JSON.stringify({ txHash }),
     }),
 
+  lockCertificate: (id: string, txHash: string) =>
+    request<CertificateIssuer>(`/api/certificates/${encodeURIComponent(id)}/lock`, {
+      method: 'POST',
+      body: JSON.stringify({ txHash }),
+    }),
+
+  unlockCertificate: (id: string, txHash: string) =>
+    request<CertificateIssuer>(`/api/certificates/${encodeURIComponent(id)}/unlock`, {
+      method: 'POST',
+      body: JSON.stringify({ txHash }),
+    }),
+
   issuers: (params?: URLSearchParams) =>
     request<Issuer[]>(`/api/issuers${params ? `?${params.toString()}` : ''}`),
 
@@ -147,6 +159,12 @@ export const api = {
     request<Issuer>('/api/issuers', {
       method: 'POST',
       body: JSON.stringify(body),
+    }),
+
+  deactivateIssuer: (id: string, txHash: string) =>
+    request<Issuer>(`/api/issuers/${encodeURIComponent(id)}/deactivate`, {
+      method: 'POST',
+      body: JSON.stringify({ txHash }),
     }),
 
   adminStats: () => request<AdminStats>('/api/admin/stats'),

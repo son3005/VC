@@ -44,6 +44,8 @@ contract CertificateRegistry is ICertificateRegistry {
     error CertificateNotFound();
     error HashAlreadyUsed();
     error AlreadyRevoked();
+    error AlreadyLocked();
+    error NotLocked();
     error InvalidOwnershipTransfer();
 
     // ---------------------------------------------------------------------
@@ -163,7 +165,8 @@ contract CertificateRegistry is ICertificateRegistry {
             ipfsCid: ipfsCid,
             issuer: msg.sender,
             issuedAt: issuedAt,
-            isRevoked: false
+            isRevoked: false,
+            isLocked: false
         });
 
         _hashToCert[hashKey] = idKey;
@@ -184,9 +187,42 @@ contract CertificateRegistry is ICertificateRegistry {
         if (msg.sender != cert.issuer && msg.sender != _owner) revert NotIssuer();
 
         cert.isRevoked = true;
+        cert.isLocked = false;
 
         // Event ghi nhận issuer của chứng chỉ; owner thu hồi là ngoại lệ.
         emit CertificateRevoked(idKey, cert.issuer, uint64(block.timestamp));
+    }
+
+    /// @notice Tạm khoá một chứng chỉ đang hợp lệ.
+    /// @dev Chỉ issuer đã cấp chứng chỉ được khoá.
+    function lockCertificate(string calldata certificateId) external override {
+        bytes32 idKey = keccak256(bytes(certificateId));
+        Certificate storage cert = _certificates[idKey];
+
+        if (cert.issuer == address(0)) revert CertificateNotFound();
+        if (cert.isRevoked) revert AlreadyRevoked();
+        if (cert.isLocked) revert AlreadyLocked();
+        if (msg.sender != cert.issuer) revert NotIssuer();
+
+        cert.isLocked = true;
+
+        emit CertificateLocked(idKey, cert.issuer, uint64(block.timestamp));
+    }
+
+    /// @notice Mở khoá một chứng chỉ đang bị tạm khoá.
+    /// @dev Issuer đã cấp hoặc owner được mở khoá để xử lý sự cố.
+    function unlockCertificate(string calldata certificateId) external override {
+        bytes32 idKey = keccak256(bytes(certificateId));
+        Certificate storage cert = _certificates[idKey];
+
+        if (cert.issuer == address(0)) revert CertificateNotFound();
+        if (cert.isRevoked) revert AlreadyRevoked();
+        if (!cert.isLocked) revert NotLocked();
+        if (msg.sender != cert.issuer && msg.sender != _owner) revert NotIssuer();
+
+        cert.isLocked = false;
+
+        emit CertificateUnlocked(idKey, cert.issuer, uint64(block.timestamp));
     }
 
     // ---------------------------------------------------------------------
@@ -233,13 +269,19 @@ contract CertificateRegistry is ICertificateRegistry {
             return (false, false, "", address(0), 0);
         }
 
-        return (true, !cert.isRevoked, cert.certificateId, cert.issuer, cert.issuedAt);
+        return (
+            true,
+            !cert.isRevoked && !cert.isLocked,
+            cert.certificateId,
+            cert.issuer,
+            cert.issuedAt
+        );
     }
 
     /// @inheritdoc ICertificateRegistry
     function isValid(string calldata certificateId) external view override returns (bool) {
         Certificate storage cert = _certificates[keccak256(bytes(certificateId))];
-        return cert.issuer != address(0) && !cert.isRevoked;
+        return cert.issuer != address(0) && !cert.isRevoked && !cert.isLocked;
     }
 
     // ---------------------------------------------------------------------

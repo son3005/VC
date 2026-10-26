@@ -1,8 +1,10 @@
 import type { NextFunction, Request, Response } from "express";
 import {
   createIssuerSchema,
+  deactivateIssuerSchema,
   issuerListQuerySchema,
 } from "../schemas/issuer";
+import { objectIdSchema } from "../schemas/common";
 import { adminService } from "../services/admin.service";
 
 export async function listIssuersController(
@@ -37,6 +39,22 @@ export async function createIssuerController(
       success: true,
       data: issuer,
     });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function deactivateIssuerController(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const id = objectIdSchema.parse(req.params.id);
+    const { txHash } = deactivateIssuerSchema.parse(req.body);
+    const issuer = await adminService.deactivateIssuer(id, txHash);
+
+    res.json({ success: true, data: issuer });
   } catch (error) {
     next(error);
   }
