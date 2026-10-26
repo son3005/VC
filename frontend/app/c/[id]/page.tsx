@@ -122,6 +122,7 @@ export default function CertificateDetailPage() {
   }
 
   const isRevoked = cert.status === 'revoked';
+  const isLocked = cert.status === 'locked';
   const typeLabel = CERTIFICATE_TYPE_LABELS[cert.certificateType] || cert.certificateType;
 
   return (
@@ -170,6 +171,21 @@ export default function CertificateDetailPage() {
               <p className="text-xs sm:text-sm text-[#B23F4A]/90 leading-relaxed">
                 Đơn vị cấp phát văn bằng đã thực hiện giao dịch thu hồi tính hiệu lực của chứng chỉ này
                 trên Smart Contract. Mọi văn bản liên quan không còn giá trị chứng nhận pháp lý.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Banner cảnh báo TẠM KHOÁ */}
+        {isLocked && (
+          <div className="p-4 sm:p-5 rounded-2xl border-2 border-[#E6AB42] bg-[#E6AB42]/10 text-[#8A6418] flex items-start gap-3.5 shadow-sm">
+            <AlertTriangle className="w-6 h-6 shrink-0 mt-0.5" />
+            <div className="space-y-1">
+              <h4 className="font-serif font-bold text-base sm:text-lg uppercase tracking-wide">
+                Chứng chỉ đang bị tạm khoá
+              </h4>
+              <p className="text-xs sm:text-sm text-[#8A6418]/90 leading-relaxed">
+                Đơn vị cấp đã tạm khoá chứng chỉ này. Chứng chỉ chưa bị thu hồi vĩnh viễn và có thể được mở khoá.
               </p>
             </div>
           </div>

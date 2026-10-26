@@ -81,6 +81,45 @@ export async function revokeCertificateOnChain(
   }
 }
 
+export async function removeIssuerOnChain(wallet: string): Promise<string> {
+  beginLoading('Đang chờ ký giao dịch khoá đơn vị cấp...');
+  try {
+    const contract = await getWriteContract();
+    const tx = await contract.removeIssuer(wallet);
+    updateLoadingMessage('Đang chờ xác nhận giao dịch trên Sepolia...');
+    const receipt = await tx.wait();
+    return receipt.hash;
+  } finally {
+    endLoading();
+  }
+}
+
+export async function lockCertificateOnChain(certificateId: string): Promise<string> {
+  beginLoading('Đang chờ ký giao dịch khoá chứng chỉ...');
+  try {
+    const contract = await getWriteContract();
+    const tx = await contract.lockCertificate(certificateId);
+    updateLoadingMessage('Đang chờ xác nhận giao dịch trên Sepolia...');
+    const receipt = await tx.wait();
+    return receipt.hash;
+  } finally {
+    endLoading();
+  }
+}
+
+export async function unlockCertificateOnChain(certificateId: string): Promise<string> {
+  beginLoading('Đang chờ ký giao dịch mở khoá chứng chỉ...');
+  try {
+    const contract = await getWriteContract();
+    const tx = await contract.unlockCertificate(certificateId);
+    updateLoadingMessage('Đang chờ xác nhận giao dịch trên Sepolia...');
+    const receipt = await tx.wait();
+    return receipt.hash;
+  } finally {
+    endLoading();
+  }
+}
+
 export async function addIssuerOnChain(
   wallet: string,
   name: string

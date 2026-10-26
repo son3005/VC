@@ -24,7 +24,7 @@ export interface VerifyResultProps {
 }
 
 export function VerifyResult({ result, calculatedHash }: VerifyResultProps) {
-  const { exists, valid, certificate, certificateId, issuer, issuedAt } = result;
+  const { exists, certificate, certificateId, issuer, issuedAt } = result;
 
   // Trường hợp 1: Không tìm thấy chứng chỉ khớp trên blockchain
   if (!exists || !certificate) {
@@ -59,8 +59,9 @@ export function VerifyResult({ result, calculatedHash }: VerifyResultProps) {
     );
   }
 
-  // Trường hợp 2: Chứng chỉ tồn tại (Hợp lệ hoặc Đã thu hồi)
-  const isRevoked = certificate.status === 'revoked' || !valid;
+  // Trường hợp 2: Chứng chỉ tồn tại (Hợp lệ, tạm khoá hoặc đã thu hồi)
+  const isRevoked = certificate.status === 'revoked';
+  const isLocked = certificate.status === 'locked';
   const typeLabel =
     CERTIFICATE_TYPE_LABELS[certificate.certificateType] || certificate.certificateType;
 
@@ -74,6 +75,18 @@ export function VerifyResult({ result, calculatedHash }: VerifyResultProps) {
             <strong>CẢNH BÁO: VĂN BẰNG NÀY ĐÃ BỊ THU HỒI!</strong>
             <p className="text-xs text-[#B23F4A]/90 mt-0.5">
               Đơn vị cấp đã thu hồi văn bằng này trên Blockchain. Văn bằng hiện không còn giá trị sử dụng pháp lý.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {isLocked && (
+        <div className="p-4 rounded-xl border border-[#E6AB42] bg-[#E6AB42]/10 text-sm text-[#8A6418] flex items-center gap-3">
+          <AlertTriangle className="w-5 h-5 shrink-0" />
+          <div>
+            <strong>VĂN BẰNG ĐANG TẠM KHOÁ</strong>
+            <p className="text-xs text-[#8A6418]/90 mt-0.5">
+              Đơn vị cấp đã tạm khoá văn bằng này. Văn bằng chưa bị thu hồi vĩnh viễn và có thể được mở khoá.
             </p>
           </div>
         </div>

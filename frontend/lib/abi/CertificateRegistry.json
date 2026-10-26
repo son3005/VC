@@ -6,6 +6,11 @@
   },
   {
     "inputs": [],
+    "name": "AlreadyLocked",
+    "type": "error"
+  },
+  {
+    "inputs": [],
     "name": "AlreadyRevoked",
     "type": "error"
   },
@@ -42,6 +47,11 @@
   {
     "inputs": [],
     "name": "NotIssuer",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "NotLocked",
     "type": "error"
   },
   {
@@ -109,11 +119,61 @@
       {
         "indexed": false,
         "internalType": "uint64",
+        "name": "lockedAt",
+        "type": "uint64"
+      }
+    ],
+    "name": "CertificateLocked",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "bytes32",
+        "name": "idHash",
+        "type": "bytes32"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "issuer",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint64",
         "name": "revokedAt",
         "type": "uint64"
       }
     ],
     "name": "CertificateRevoked",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "bytes32",
+        "name": "idHash",
+        "type": "bytes32"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "issuer",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint64",
+        "name": "unlockedAt",
+        "type": "uint64"
+      }
+    ],
+    "name": "CertificateUnlocked",
     "type": "event"
   },
   {
@@ -284,6 +344,11 @@
             "internalType": "bool",
             "name": "isRevoked",
             "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "isLocked",
+            "type": "bool"
           }
         ],
         "internalType": "struct ICertificateRegistry.Certificate",
@@ -392,6 +457,19 @@
     "type": "function"
   },
   {
+    "inputs": [
+      {
+        "internalType": "string",
+        "name": "certificateId",
+        "type": "string"
+      }
+    ],
+    "name": "lockCertificate",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
     "inputs": [],
     "name": "owner",
     "outputs": [
@@ -452,6 +530,19 @@
       }
     ],
     "name": "transferOwnership",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "string",
+        "name": "certificateId",
+        "type": "string"
+      }
+    ],
+    "name": "unlockCertificate",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"

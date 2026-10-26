@@ -40,6 +40,7 @@ export function SearchFilters({
     { value: 'all', label: 'Tất cả trạng thái' },
     { value: 'active', label: 'Hợp lệ' },
     { value: 'revoked', label: 'Đã thu hồi' },
+    { value: 'locked', label: 'Tạm khoá' },
   ];
 
   const typeOptions = [
