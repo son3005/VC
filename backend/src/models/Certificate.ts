@@ -1,3 +1,9 @@
+/**
+ * @file Certificate.ts
+ * @description Mô hình dữ liệu Mongoose cho Văn bằng / Chứng chỉ số (Certificate Model).
+ * Quản lý siêu dữ liệu off-chain, thông tin định danh sinh viên (PII), liên kết IPFS và dữ liệu neo Blockchain.
+ */
+
 import {
   Schema,
   model,
@@ -117,6 +123,7 @@ export interface ICertificate {
   updatedAt: Date;
 }
 
+/** Kiểu Document Mongoose đại diện cho một bản ghi ICertificate */
 export type CertificateDocument = HydratedDocument<ICertificate>;
 
 /**
@@ -371,6 +378,7 @@ certificateSchema.index(
   { name: "certificate_text_search", default_language: "none" }
 );
 
+/** Model Mongoose Certificate dùng để thao tác với collection certificates */
 export const Certificate: Model<ICertificate> = model<ICertificate>(
   "Certificate",
   certificateSchema
