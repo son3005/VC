@@ -1,3 +1,22 @@
+/**
+ * @file sync.service.test.ts
+ * @description Kiểm thử đơn vị (Unit Tests) cho dịch vụ đồng bộ sự kiện Blockchain về Cơ sở dữ liệu (backfillEvents).
+ * 
+ * Kiểm tra các tính năng và quy tắc đồng bộ sự kiện cốt lõi:
+ * 1. Xử lý sự kiện CertificateIssued:
+ *    - Bóc tách dữ liệu sự kiện (idHash, certificateId, fileHash, issuer, issuedAt).
+ *    - Bổ sung các trường còn thiếu vào MongoDB (certificateIdHash, txHash, blockNumber).
+ *    - Ghi nhận lịch sử bất biến vào bảng ChainEvent và cập nhật mốc checkpoint trong SyncState.
+ * 2. Xử lý sự kiện CertificateRevoked:
+ *    - Tìm kiếm bản ghi văn bằng thông qua `idHash` và cập nhật trạng thái `revoked` cùng mã giao dịch thu hồi.
+ * 3. Xử lý sự kiện IssuerUpdated:
+ *    - Cập nhật trạng thái kích hoạt trên chuỗi (`onChainActive: true/false`) của đơn vị phát hành.
+ * 4. Cơ chế chống trùng lặp sự kiện (Deduplication / Idempotency):
+ *    - Bỏ qua các sự kiện đã tồn tại trong bảng `ChainEvent`.
+ * 5. Cơ chế bảo vệ điểm kiểm soát (Checkpoint Guard):
+ *    - Không quét lại nếu dải khối yêu cầu nằm phía sau điểm checkpoint đã đồng bộ.
+ */
+
 jest.mock("../../models", () => ({
   Certificate: {
     find: jest.fn(),
@@ -45,6 +64,9 @@ const parseLog = registry.interface.parseLog as jest.Mock;
 const TX = "0x" + "a".repeat(64);
 const ISSUER = "0xf009863379f6b0056c1d828fde2827fd94202a1b";
 
+/**
+ * Hàm khởi tạo trạng thái đồng bộ SyncState mẫu
+ */
 function makeState(lastSyncedBlock = env.DEPLOY_BLOCK) {
   return {
     key: "certificate_registry",
@@ -53,6 +75,9 @@ function makeState(lastSyncedBlock = env.DEPLOY_BLOCK) {
   };
 }
 
+/**
+ * Hàm khởi tạo log sự kiện thô từ JSON-RPC Provider
+ */
 function makeLog(blockNumber = env.DEPLOY_BLOCK + 1) {
   return {
     address: env.CONTRACT_ADDRESS,
@@ -64,6 +89,9 @@ function makeLog(blockNumber = env.DEPLOY_BLOCK + 1) {
   };
 }
 
+/**
+ * Hàm trợ giúp mô phỏng kết quả phân tích log của Ethers Interface
+ */
 function parsed(
   name: string,
   inputs: string[],
@@ -100,6 +128,10 @@ describe("backfillEvents", () => {
     );
   });
 
+  /**
+   * Test case 1: Xử lý sự kiện CertificateIssued và điền đầy đủ các trường mã băm/giao dịch
+   * Cập nhật certificateIdHash, txHash cho chứng chỉ, lưu ChainEvent và tăng lastSyncedBlock.
+   */
   it("processes CertificateIssued and fills missing hash/tx fields", async () => {
     const log = makeLog();
     getLogs.mockResolvedValue([log]);
@@ -151,6 +183,10 @@ describe("backfillEvents", () => {
     expect(state.save).toHaveBeenCalled();
   });
 
+  /**
+   * Test case 2: Xử lý sự kiện CertificateRevoked theo idHash
+   * Tìm kiếm văn bằng qua certificateIdHash và cập nhật trạng thái 'revoked' cùng thông tin block/tx.
+   */
   it("processes CertificateRevoked by idHash", async () => {
     const log = makeLog();
     const idHash = "0x" + "d".repeat(64);
@@ -187,6 +223,9 @@ describe("backfillEvents", () => {
     );
   });
 
+  /**
+   * Test case 3: Xử lý sự kiện IssuerUpdated và cập nhật cờ onChainActive
+   */
   it("processes IssuerUpdated and toggles onChainActive", async () => {
     const log = makeLog();
     getLogs.mockResolvedValue([log]);
@@ -207,6 +246,10 @@ describe("backfillEvents", () => {
     );
   });
 
+  /**
+   * Test case 4: Bỏ qua các sự kiện đã được ghi nhận trước đó trong bảng chain_events
+   * Đảm bảo tính chống lặp (Deduplication) khi quét lại các khối cũ.
+   */
   it("skips events already recorded in chain_events", async () => {
     const log = makeLog();
     getLogs.mockResolvedValue([log]);
@@ -226,6 +269,9 @@ describe("backfillEvents", () => {
     expect(issuerUpdateOne).not.toHaveBeenCalled();
   });
 
+  /**
+   * Test case 5: Không quét khi dải khối yêu cầu nằm phía sau điểm checkpoint đã lưu
+   */
   it("does not scan when the requested range is behind the checkpoint", async () => {
     syncStateFindOne.mockResolvedValue(makeState(env.DEPLOY_BLOCK + 5));
 
