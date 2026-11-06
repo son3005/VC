@@ -1,3 +1,9 @@
+/**
+ * @file Issuer.ts
+ * @description Mô hình dữ liệu Mongoose cho Đơn vị phát hành văn bằng (Issuer Model).
+ * Quản lý hồ sơ pháp lý, địa chỉ ví ký số Web3, liên kết tài khoản và cơ chế trạng thái kép (Dual Status).
+ */
+
 import {
   Schema,
   model,
@@ -39,6 +45,7 @@ export interface IIssuer {
   updatedAt: Date;
 }
 
+/** Kiểu HydratedDocument của Mongoose đại diện cho một bản ghi Issuer */
 export type IssuerDocument = HydratedDocument<IIssuer>;
 
 /**
@@ -130,4 +137,5 @@ issuerSchema.index(
   }
 );
 
+/** Model Mongoose Issuer dùng để thao tác với bộ sưu tập issuers */
 export const Issuer: Model<IIssuer> = model<IIssuer>("Issuer", issuerSchema);
