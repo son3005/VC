@@ -1,13 +1,26 @@
+/**
+ * @file sync.service.ts
+ * @description Dịch vụ đồng bộ sự kiện Blockchain (Event Indexer) về cơ sở dữ liệu MongoDB.
+ * Lắng nghe và quét các sự kiện từ Smart Contract CertificateRegistry theo thời gian thực và quét bù (backfill).
+ */
+
 import { keccak256, toUtf8Bytes, type Log } from "ethers";
 import { env } from "../config/env";
 import { Certificate, ChainEvent, Issuer, SyncState } from "../models";
 import { provider, registry } from "./chain.service";
 
+/** Khóa định danh trạng thái đồng bộ trong bảng SyncState */
 const SYNC_KEY = "certificate_registry";
+/** Số lượng khối tối đa cho mỗi truy vấn getLogs nhằm tránh vượt hạn mức RPC */
 const CHUNK_SIZE = 5_000;
 
+/** Cờ đánh dấu đã kiểm tra và chuẩn hóa hash mã văn bằng */
 let hashesEnsured = false;
 
+/**
+ * Đảm bảo mọi văn bằng trong cơ sở dữ liệu đều có sẵn trường certificateIdHash (keccak256)
+ * Giúp tối ưu hóa tốc độ tìm kiếm khi khớp sự kiện từ Smart Contract
+ */
 async function ensureCertificateIdHashes(): Promise<void> {
   if (hashesEnsured) return;
 
@@ -28,11 +41,13 @@ async function ensureCertificateIdHashes(): Promise<void> {
   hashesEnsured = true;
 }
 
+/** Cấu trúc sự kiện sau khi bóc tách từ ABI của Smart Contract */
 interface ParsedEvent {
   name: string;
   args: Record<string, unknown>;
 }
 
+/** Kết quả thống kê sau quá trình quét bù sự kiện (backfill) */
 export interface BackfillResult {
   fromBlock: number;
   toBlock: number;
@@ -45,6 +60,10 @@ export interface BackfillResult {
   skipped: number;
 }
 
+/**
+ * Phân tích log sự kiện từ chuỗi khối dựa trên ABI của hợp đồng
+ * Chuyển đổi an toàn các giá trị bigint sang chuỗi (string)
+ */
 function parseLog(log: Log): ParsedEvent | null {
   if (log.address.toLowerCase() !== env.CONTRACT_ADDRESS.toLowerCase()) {
     return null;
@@ -66,7 +85,15 @@ function parseLog(log: Log): ParsedEvent | null {
   }
 }
 
+/**
+ * Cập nhật trạng thái nghiệp vụ trong MongoDB tương ứng với sự kiện trên Smart Contract
+ * - CertificateIssued: Bổ sung hash, txHash, blockNumber vào văn bằng
+ * - CertificateRevoked: Đổi trạng thái sang "revoked", gỡ bỏ cờ khóa
+ * - CertificateLocked / Unlocked: Cập nhật trạng thái "locked" hoặc "active"
+ * - IssuerUpdated: Cập nhật quyền phát hành và tên của đơn vị phát hành
+ */
 async function applyEvent(event: ParsedEvent, log: Log): Promise<void> {
+  // 1. Xử lý sự kiện phát hành văn bằng
   if (event.name === "CertificateIssued") {
     const certificateId = String(event.args.certificateId);
     const cert = await Certificate.findOne({ certificateId });
@@ -90,6 +117,7 @@ async function applyEvent(event: ParsedEvent, log: Log): Promise<void> {
     return;
   }
 
+  // 2. Xử lý sự kiện thu hồi văn bằng
   if (event.name === "CertificateRevoked") {
     const idHash = String(event.args.idHash);
     const cert = await Certificate.findOne({ certificateIdHash: idHash });
@@ -120,6 +148,7 @@ async function applyEvent(event: ParsedEvent, log: Log): Promise<void> {
     return;
   }
 
+  // 3. Xử lý sự kiện tạm khóa hoặc mở khóa văn bằng
   if (event.name === "CertificateLocked" || event.name === "CertificateUnlocked") {
     const idHash = String(event.args.idHash);
     const cert = await Certificate.findOne({ certificateIdHash: idHash });
@@ -131,6 +160,7 @@ async function applyEvent(event: ParsedEvent, log: Log): Promise<void> {
       return;
     }
 
+    // Văn bằng đã bị thu hồi thì không thể thay đổi trạng thái khóa
     if (cert.status === "revoked") return;
 
     if (event.name === "CertificateLocked") {
@@ -157,6 +187,7 @@ async function applyEvent(event: ParsedEvent, log: Log): Promise<void> {
     return;
   }
 
+  // 4. Xử lý sự kiện cập nhật đơn vị phát hành (Issuer)
   if (event.name === "IssuerUpdated") {
     const wallet = String(event.args.issuer).toLowerCase();
     const active = Boolean(event.args.active);
@@ -173,6 +204,9 @@ async function applyEvent(event: ParsedEvent, log: Log): Promise<void> {
   }
 }
 
+/**
+ * Lấy hoặc khởi tạo điểm kiểm soát đồng bộ (checkpoint) từ MongoDB
+ */
 async function getSyncState() {
   let state = await SyncState.findOne({ key: SYNC_KEY });
 
@@ -188,7 +222,12 @@ async function getSyncState() {
   return state;
 }
 
+/**
+ * Xử lý sự kiện đơn lẻ kèm cơ chế chống trùng lặp (Idempotency)
+ * Lưu bản ghi sự kiện bất biến vào bộ sưu tập ChainEvent
+ */
 async function processEvent(event: ParsedEvent, log: Log): Promise<boolean> {
+  // Kiểm tra trùng lặp dựa trên cặp định danh duy nhất (txHash, logIndex)
   const existing = await ChainEvent.exists({
     txHash: log.transactionHash.toLowerCase(),
     logIndex: log.index,
@@ -210,6 +249,7 @@ async function processEvent(event: ParsedEvent, log: Log): Promise<boolean> {
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
+    // Bỏ qua lỗi duplicate key nếu có xung đột ghi đồng thời
     if (!message.includes("duplicate key")) {
       throw error;
     }
@@ -218,6 +258,14 @@ async function processEvent(event: ParsedEvent, log: Log): Promise<boolean> {
   return true;
 }
 
+/**
+ * Quét bù các sự kiện từ dải khối chỉ định hoặc từ mốc đồng bộ trước đó đến khối hiện tại
+ * Chia nhỏ khối theo từng CHUNK_SIZE để tránh quá tải mạng RPC
+ * 
+ * @param {number} [fromBlock] Khối bắt đầu (mặc định: lastSyncedBlock + 1)
+ * @param {number} [toBlock] Khối kết thúc (mặc định: khối hiện tại trên mạng)
+ * @returns {Promise<BackfillResult>} Thống kê số lượng sự kiện đã xử lý
+ */
 export async function backfillEvents(
   fromBlock?: number,
   toBlock?: number
@@ -247,6 +295,7 @@ export async function backfillEvents(
     return result;
   }
 
+  // Quét theo từng đoạn nhỏ CHUNK_SIZE khối
   for (let from = start; from <= latest; from += CHUNK_SIZE) {
     const to = Math.min(from + CHUNK_SIZE - 1, latest);
     const logs = await provider.getLogs({
@@ -281,6 +330,7 @@ export async function backfillEvents(
       }
     }
 
+    // Cập nhật điểm kiểm soát checkpoint sau mỗi phân đoạn khối hoàn thành
     state.lastSyncedBlock = to;
     await state.save();
   }
@@ -288,8 +338,12 @@ export async function backfillEvents(
   return result;
 }
 
+/** Cờ mutex chống chồng lấn các lần quét khối đồng thời */
 let syncing = false;
 
+/**
+ * Xử lý khi có khối mới xuất hiện trên mạng Blockchain
+ */
 async function onBlock(blockNumber: number): Promise<void> {
   if (syncing) return;
   syncing = true;
@@ -304,10 +358,16 @@ async function onBlock(blockNumber: number): Promise<void> {
   }
 }
 
+/** Hàm wrapper gọi onBlock không chặn tiến trình */
 const blockHandler = (blockNumber: number): void => {
   void onBlock(blockNumber);
 };
 
+/**
+ * Khởi động tiến trình đồng bộ dữ liệu:
+ * 1. Quét bù toàn bộ sự kiện lịch sử còn thiếu
+ * 2. Đăng ký lắng nghe sự kiện sinh khối mới theo thời gian thực
+ */
 export async function startSync(): Promise<void> {
   const result = await backfillEvents();
   console.log(
@@ -318,10 +378,16 @@ export async function startSync(): Promise<void> {
   console.log("[sync] listener started");
 }
 
+/**
+ * Dừng lắng nghe sự kiện sinh khối mới
+ */
 export function stopSync(): void {
   provider.off("block", blockHandler);
 }
 
+/**
+ * Lấy trạng thái tiến độ đồng bộ hiện tại so với chuỗi khối
+ */
 export async function getSyncStatus(): Promise<{
   key: string;
   lastSyncedBlock: number;
@@ -341,6 +407,7 @@ export async function getSyncStatus(): Promise<{
   };
 }
 
+/** Lớp dịch vụ đồng bộ sự kiện Blockchain */
 export class SyncService {
   backfillEvents = backfillEvents;
   start = startSync;
@@ -348,4 +415,5 @@ export class SyncService {
   getStatus = getSyncStatus;
 }
 
+/** Thể hiện Singleton của SyncService dùng chung toàn ứng dụng */
 export const syncService = new SyncService();
