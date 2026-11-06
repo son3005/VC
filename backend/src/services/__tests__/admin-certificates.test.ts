@@ -1,3 +1,14 @@
+/**
+ * @file admin-certificates.test.ts
+ * @description Kiểm thử đơn vị (Unit Tests) cho chức năng quản trị tra cứu văn bằng (listAllCertificates).
+ * 
+ * Bộ kiểm thử bao gồm:
+ * 1. Phân trang và bộ lọc nâng cao cho Quản trị viên (Admin Filters & Pagination):
+ *    - Lọc theo từ khóa tìm kiếm (`q`), trạng thái (`status`), loại bằng (`type`), địa chỉ ví đơn vị cấp (`issuerWallet`), năm tốt nghiệp (`year`).
+ *    - Xác thực tính chính xác của đối tượng điều kiện truy vấn MongoDB (`find`) và siêu dữ liệu phân trang (`meta`).
+ * 2. Xử lý trường hợp không truyền bộ lọc tùy chọn (Default query handling).
+ */
+
 jest.mock("../../models", () => ({
   Certificate: {
     find: jest.fn(),
@@ -20,6 +31,7 @@ import { listAllCertificates } from "../certificate.service";
 const find = Certificate.find as jest.Mock;
 const count = Certificate.countDocuments as jest.Mock;
 
+/** Dữ liệu văn bằng mẫu đại diện cho bản ghi MongoDB */
 const doc = {
   certificateId: "UIT-DEG-2026-0001",
   certificateType: "degree",
@@ -44,6 +56,11 @@ describe("listAllCertificates", () => {
     count.mockResolvedValue(1);
   });
 
+  /**
+   * Test case 1: Áp dụng đầy đủ các bộ lọc của quản trị viên và tính toán phân trang
+   * Đảm bảo câu lệnh MongoDB `find` nhận đủ các tham số điều kiện kết hợp `$or` tìm kiếm full-text
+   * và tính toán đúng siêu dữ liệu phân trang (page, limit, total, totalPages).
+   */
   it("applies admin filters and pagination", async () => {
     find.mockReturnValue({
       sort: jest.fn().mockReturnValue({
@@ -83,6 +100,10 @@ describe("listAllCertificates", () => {
     });
   });
 
+  /**
+   * Test case 2: Bỏ qua các bộ lọc tùy chọn khi người dùng không cung cấp
+   * Đảm bảo khi chỉ truyền page và limit, query object truyền vào `find()` là rỗng `{}`.
+   */
   it("omits optional filters when not provided", async () => {
     find.mockReturnValue({
       sort: jest.fn().mockReturnValue({

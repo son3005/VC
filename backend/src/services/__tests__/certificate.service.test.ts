@@ -1,3 +1,21 @@
+/**
+ * @file certificate.service.test.ts
+ * @description Kiểm thử đơn vị (Unit Tests) cho quy trình thu hồi văn bằng (revokeCertificate).
+ * 
+ * Kiểm tra các tiêu chuẩn an toàn và logic phân quyền:
+ * 1. Kiểm tra tồn tại bản ghi (404 CERTIFICATE_NOT_FOUND).
+ * 2. Phân quyền thu hồi (Authorization & Ownership):
+ *    - Đơn vị sở hữu ví phát hành (Issuer Wallet) được phép thu hồi.
+ *    - Quản trị viên hệ thống (Admin) có toàn quyền thu hồi bất kỳ chứng chỉ nào.
+ *    - Người lạ hoặc Issuer khác không được phép thu hồi (403 FORBIDDEN).
+ * 3. Tính lũy thừa và nhất quán giao dịch (Idempotency & Conflict):
+ *    - Gọi lại hàm thu hồi với cùng transaction hash -> Trả về kết quả thành công mà không ghi trùng dữ liệu (Idempotent).
+ *    - Gửi yêu cầu thu hồi với transaction hash khác khi đã bị thu hồi -> Báo lỗi xung đột (409 ALREADY_REVOKED).
+ * 4. Đối chiếu tính toàn vẹn trạng thái On-chain (Blockchain State Verification):
+ *    - Từ chối cập nhật nếu sự kiện trên Smart Contract vẫn báo chứng chỉ còn hoạt động (422 TX_INVALID).
+ *    - Lan truyền đúng mã lỗi khi transaction hash không hợp lệ trên mạng lưới.
+ */
+
 jest.mock("../../models", () => ({
   Certificate: { findOne: jest.fn() },
   ChainEvent: { create: jest.fn() },
@@ -27,6 +45,9 @@ const CERT_ID = "UIT-DEG-2026-0001";
 const ISSUER_WALLET = "0xf009863379f6b0056c1d828fde2827fd94202a1b";
 const TX_HASH = "0x" + "a".repeat(64);
 
+/**
+ * Hàm khởi tạo bản ghi văn bằng mẫu với các trường mặc định
+ */
 function makeDoc(overrides: Record<string, unknown> = {}) {
   return {
     certificateId: CERT_ID,
@@ -59,18 +80,21 @@ function makeDoc(overrides: Record<string, unknown> = {}) {
   };
 }
 
+/** Chủ thể người dùng: Đơn vị đã phát hành chứng chỉ */
 const issuer = {
   id: "user-1",
   role: "issuer" as const,
   walletAddress: ISSUER_WALLET,
 };
 
+/** Chủ thể người dùng: Đơn vị khác không sở hữu chứng chỉ */
 const stranger = {
   id: "user-2",
   role: "issuer" as const,
   walletAddress: "0x1111111111111111111111111111111111111111",
 };
 
+/** Chủ thể người dùng: Quản trị viên hệ thống */
 const admin = {
   id: "user-3",
   role: "admin" as const,
@@ -83,6 +107,9 @@ describe("revokeCertificate", () => {
     chainEventCreate.mockResolvedValue({});
   });
 
+  /**
+   * Test case 1: Trả về lỗi 404 khi không tìm thấy mã chứng chỉ trong cơ sở dữ liệu
+   */
   it("returns 404 when certificate does not exist", async () => {
     findOne.mockResolvedValue(null);
 
@@ -92,6 +119,10 @@ describe("revokeCertificate", () => {
     });
   });
 
+  /**
+   * Test case 2: Cho phép chính đơn vị đã phát hành (khớp issuerWallet) thu hồi văn bằng
+   * Cập nhật trạng thái thành 'revoked', lưu transaction hash và block number.
+   */
   it("allows the issuing wallet to revoke", async () => {
     const doc = makeDoc();
     findOne.mockResolvedValue(doc);
@@ -111,6 +142,10 @@ describe("revokeCertificate", () => {
     expect(result.status).toBe("revoked");
   });
 
+  /**
+   * Test case 3: Từ chối yêu cầu từ ví không phải là đơn vị đã phát hành văn bằng
+   * Báo lỗi 403 FORBIDDEN và không thực hiện lưu thay đổi.
+   */
   it("rejects a wallet that did not issue the certificate", async () => {
     const doc = makeDoc();
     findOne.mockResolvedValue(doc);
@@ -122,6 +157,9 @@ describe("revokeCertificate", () => {
     expect(doc.save).not.toHaveBeenCalled();
   });
 
+  /**
+   * Test case 4: Cho phép Quản trị viên (Admin) thu hồi bất kỳ văn bằng nào
+   */
   it("allows admin to revoke any certificate", async () => {
     const doc = makeDoc();
     findOne.mockResolvedValue(doc);
@@ -138,6 +176,10 @@ describe("revokeCertificate", () => {
     expect(doc.save).toHaveBeenCalled();
   });
 
+  /**
+   * Test case 5: Đảm bảo tính lũy thừa (Idempotency) khi gửi lại cùng một giao dịch thu hồi
+   * Trả về kết quả thành công mà không gọi lại thao tác lưu dữ liệu (doc.save).
+   */
   it("is idempotent for the same revoke transaction", async () => {
     const doc = makeDoc({
       status: "revoked",
@@ -153,6 +195,10 @@ describe("revokeCertificate", () => {
     expect(findRevoked).not.toHaveBeenCalled();
   });
 
+  /**
+   * Test case 6: Từ chối yêu cầu thu hồi lần thứ hai với transaction hash khác
+   * Báo lỗi 409 ALREADY_REVOKED để ngăn chặn ghi đè lịch sử giao dịch ban đầu.
+   */
   it("rejects a second revoke with a different transaction", async () => {
     const doc = makeDoc({
       status: "revoked",
@@ -165,6 +211,10 @@ describe("revokeCertificate", () => {
     ).rejects.toMatchObject({ status: 409, code: "ALREADY_REVOKED" });
   });
 
+  /**
+   * Test case 7: Từ chối cập nhật nếu dữ liệu On-chain vẫn phản hồi chứng chỉ còn hoạt động
+   * Ngăn chặn tình huống lệch pha dữ liệu khi giao dịch blockchain thất bại (Reverted).
+   */
   it("rejects when the chain still reports the certificate as active", async () => {
     const doc = makeDoc();
     findOne.mockResolvedValue(doc);
@@ -182,6 +232,9 @@ describe("revokeCertificate", () => {
     expect(doc.save).not.toHaveBeenCalled();
   });
 
+  /**
+   * Test case 8: Lan truyền chính xác lỗi khi transaction hash không hợp lệ trên chuỗi
+   */
   it("propagates an invalid transaction error", async () => {
     const doc = makeDoc();
     findOne.mockResolvedValue(doc);

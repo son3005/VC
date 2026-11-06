@@ -1,3 +1,17 @@
+/**
+ * @file admin.service.test.ts
+ * @description Kiểm thử đơn vị (Unit Tests) cho dịch vụ thống kê tổng quan của quản trị viên (getAdminStats).
+ * 
+ * Bộ kiểm thử bao gồm:
+ * 1. Tổng hợp dữ liệu thống kê đa chiều (Multi-dimensional Aggregation):
+ *    - Đếm tổng số văn bằng, số lượng active và revoked.
+ *    - Đếm tổng số đơn vị cấp phát (Issuer) và số lượng đang hoạt động.
+ *    - Đếm tổng số tài khoản người dùng (User).
+ *    - Gom nhóm văn bằng theo từng phân loại (degree, course, credit, other) qua MongoDB Pipeline Aggregate.
+ *    - Lấy danh sách văn bằng mới phát hành gần đây nhất.
+ * 2. Xử lý trường hợp hệ thống chưa có dữ liệu (Zeroed Stats Handling).
+ */
+
 jest.mock("../../models", () => ({
   Certificate: {
     countDocuments: jest.fn(),
@@ -22,6 +36,11 @@ describe("getAdminStats", () => {
     jest.clearAllMocks();
   });
 
+  /**
+   * Test case 1: Trả về đầy đủ số liệu thống kê chứng chỉ, đơn vị phát hành, người dùng và mục gần đây
+   * Mô phỏng: 10 chứng chỉ (7 active, 3 revoked), 4 issuer (3 active), 5 users,
+   * 6 degree, 4 course, và 1 chứng chỉ gần nhất.
+   */
   it("returns certificate, issuer and user totals with recent items", async () => {
     certificateCount
       .mockResolvedValueOnce(10)
@@ -70,6 +89,10 @@ describe("getAdminStats", () => {
     );
   });
 
+  /**
+   * Test case 2: Khởi tạo giá trị 0 cho mọi loại văn bằng khi cơ sở dữ liệu trống
+   * Đảm bảo cấu trúc đối tượng trả về vẫn đầy đủ 4 khóa: degree, course, credit, other với giá trị 0.
+   */
   it("returns zeroed type counts when there are no certificates", async () => {
     certificateCount.mockResolvedValue(0);
     issuerCount.mockResolvedValue(0);
