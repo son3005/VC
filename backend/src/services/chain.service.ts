@@ -1,14 +1,23 @@
+/**
+ * @file chain.service.ts
+ * @description Dịch vụ tương tác trực tiếp với Ethereum Smart Contract (CertificateRegistry).
+ * Xử lý kiểm tra biên lai giao dịch (Receipt), đọc sự kiện (Events) và đối chiếu trạng thái On-chain.
+ */
+
 import { Contract, JsonRpcProvider, keccak256, toUtf8Bytes } from "ethers";
 import abi from "../abi/CertificateRegistry.json";
 import { env } from "../config/env";
 import { HttpError } from "../utils/http-error";
 
+/** Khởi tạo JSON-RPC Provider kết nối mạng Sepolia */
 export const provider = new JsonRpcProvider(env.SEPOLIA_RPC_URL, env.CHAIN_ID, {
   staticNetwork: true,
 });
 
+/** Khởi tạo đối tượng Smart Contract CertificateRegistry */
 export const registry = new Contract(env.CONTRACT_ADDRESS, abi, provider);
 
+/** Dữ liệu sự kiện cập nhật đơn vị phát hành */
 export interface IssuerUpdatedEvent {
   blockNumber: number;
   logIndex: number;
@@ -17,8 +26,8 @@ export interface IssuerUpdatedEvent {
 }
 
 /**
- * Tìm event IssuerUpdated trong receipt và kiểm tra khớp ví + tên.
- * Không yêu cầu tx.to == contract vì có thể đi qua proxy/forwarder.
+ * Tìm và xác minh sự kiện IssuerUpdated từ transaction hash
+ * Đảm bảo giao dịch thành công (status = 1) và khớp chính xác địa chỉ ví, tên và trạng thái
  */
 export async function findIssuerUpdatedEvent(
   txHash: string,
@@ -34,6 +43,7 @@ export async function findIssuerUpdatedEvent(
     throw new HttpError(502, "CHAIN_ERROR", "Không đọc được giao dịch từ blockchain");
   }
 
+  // Giao dịch phải tồn tại và có status = 1 (thành công)
   if (!receipt || receipt.status !== 1) {
     throw new HttpError(
       422,
@@ -47,6 +57,7 @@ export async function findIssuerUpdatedEvent(
     throw new HttpError(500, "INTERNAL_ERROR", "ABI thiếu event IssuerUpdated");
   }
 
+  // Duyệt qua danh sách logs để tìm sự kiện hợp lệ
   for (const log of receipt.logs) {
     if (log.address.toLowerCase() !== env.CONTRACT_ADDRESS.toLowerCase()) {
       continue;
@@ -84,6 +95,7 @@ export async function findIssuerUpdatedEvent(
   );
 }
 
+/** Đọc thông tin đơn vị phát hành trực tiếp từ Smart Contract qua địa chỉ ví */
 export async function getIssuerOnChain(wallet: string): Promise<{
   name: string;
   active: boolean;
@@ -102,12 +114,17 @@ export async function getIssuerOnChain(wallet: string): Promise<{
   }
 }
 
+/** Dữ liệu sự kiện phát hành văn bằng */
 export interface CertificateIssuedEvent {
   blockNumber: number;
   logIndex: number;
   issuedAt: number;
 }
 
+/**
+ * Tìm và xác minh sự kiện CertificateIssued từ transaction hash
+ * Kiểm tra khớp chính xác mã chứng chỉ, file hash và ví đơn vị cấp
+ */
 export async function findCertificateIssuedEvent(
   txHash: string,
   expected: {
@@ -173,6 +190,7 @@ export async function findCertificateIssuedEvent(
   );
 }
 
+/** Cấu trúc dữ liệu văn bằng lưu trữ on-chain trên Smart Contract */
 export interface OnChainCertificate {
   certificateId: string;
   fileHash: string;
@@ -183,6 +201,10 @@ export interface OnChainCertificate {
   isLocked: boolean;
 }
 
+/**
+ * Đọc thông tin văn bằng trực tiếp từ Smart Contract theo certificateId
+ * Trả về null nếu chưa được phát hành trên chuỗi (bắt CALL_EXCEPTION)
+ */
 export async function getCertificateOnChain(
   certificateId: string
 ): Promise<OnChainCertificate | null> {
@@ -201,6 +223,7 @@ export async function getCertificateOnChain(
   } catch (error) {
     const code = (error as { code?: string }).code;
 
+    // Bằng chưa phát hành trên hợp đồng sẽ ném CALL_EXCEPTION
     if (code === "CALL_EXCEPTION" || code === "BAD_DATA") {
       return null;
     }
@@ -209,12 +232,17 @@ export async function getCertificateOnChain(
   }
 }
 
+/** Dữ liệu sự kiện thu hồi văn bằng */
 export interface CertificateRevokedEvent {
   blockNumber: number;
   logIndex: number;
   revokedAt: number;
 }
 
+/**
+ * Tìm và xác minh sự kiện CertificateRevoked từ transaction hash
+ * So khớp mã băm định danh keccak256(certificateId)
+ */
 export async function findCertificateRevokedEvent(
   txHash: string,
   certificateId: string
@@ -270,12 +298,14 @@ export async function findCertificateRevokedEvent(
   );
 }
 
+/** Dữ liệu sự kiện khóa hoặc mở khóa văn bằng */
 export interface CertificateLockEvent {
   blockNumber: number;
   logIndex: number;
   timestamp: number;
 }
 
+/** Hàm trợ giúp dùng chung để tìm sự kiện CertificateLocked hoặc CertificateUnlocked */
 async function findCertificateLockEvent(
   txHash: string,
   certificateId: string,
@@ -330,6 +360,7 @@ async function findCertificateLockEvent(
   );
 }
 
+/** Tìm và xác minh sự kiện CertificateLocked */
 export function findCertificateLockedEvent(txHash: string, certificateId: string) {
   return findCertificateLockEvent(
     txHash,
@@ -339,6 +370,7 @@ export function findCertificateLockedEvent(txHash: string, certificateId: string
   );
 }
 
+/** Tìm và xác minh sự kiện CertificateUnlocked */
 export function findCertificateUnlockedEvent(txHash: string, certificateId: string) {
   return findCertificateLockEvent(
     txHash,
@@ -348,6 +380,10 @@ export function findCertificateUnlockedEvent(txHash: string, certificateId: stri
   );
 }
 
+/**
+ * Thẩm định mã băm file SHA-256 trực tiếp trên Smart Contract
+ * Trả về: exists (có trên chuỗi), valid (hợp lệ - chưa bị thu hồi/khóa), mã chứng chỉ và ngày cấp
+ */
 export async function verifyHashOnChain(fileHash: string): Promise<{
   exists: boolean;
   valid: boolean;
