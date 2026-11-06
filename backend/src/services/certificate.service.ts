@@ -1,3 +1,9 @@
+/**
+ * @file certificate.service.ts
+ * @description Dịch vụ xử lý toàn bộ vòng đời văn bằng và tra cứu chứng chỉ số.
+ * Quản lý các trạng thái: Draft -> Active <-> Locked -> Revoked.
+ */
+
 import { keccak256, toUtf8Bytes } from "ethers";
 import type { FilterQuery } from "mongoose";
 import { env } from "../config/env";
@@ -39,14 +45,17 @@ import {
   verifyHashOnChain,
 } from "./chain.service";
 
+/** Thoát các ký tự đặc biệt để tạo biểu thức chính quy (Regex) an toàn */
 function escapeRegex(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
+/** Tạo đường dẫn xác thực công khai cho văn bằng */
 function verifyUrl(certificateId: string): string {
   return `/c/${certificateId}`;
 }
 
+/** Chuyển document sang định dạng tóm tắt (Summary DTO) */
 function toSummary(doc: CertificateDocument): CertificateSummaryDTO {
   return {
     certificateId: doc.certificateId,
@@ -63,6 +72,7 @@ function toSummary(doc: CertificateDocument): CertificateSummaryDTO {
   };
 }
 
+/** Chuyển document sang định dạng chi tiết đầy đủ (Detail DTO) */
 function toDetail(
   doc: CertificateDocument,
   status: "active" | "revoked" | "locked"
@@ -85,6 +95,7 @@ function toDetail(
   };
 }
 
+/** Chuyển document sang định dạng danh sách gần đây (che tên và MSSV) */
 function toRecent(doc: CertificateDocument): RecentCertificateDTO {
   return {
     certificateId: doc.certificateId,
@@ -99,6 +110,7 @@ function toRecent(doc: CertificateDocument): RecentCertificateDTO {
   };
 }
 
+/** Chuyển document sang định dạng hiển thị cho đơn vị cấp bằng (Issuer DTO) */
 function toIssuerCertificate(doc: CertificateDocument): CertificateIssuerDTO {
   return {
     certificateId: doc.certificateId,
@@ -121,6 +133,7 @@ function toIssuerCertificate(doc: CertificateDocument): CertificateIssuerDTO {
   };
 }
 
+/** Trích xuất các trường tìm kiếm theo từng phân loại bằng */
 function extractSearchFields(
   input: ConfirmCertificateInput,
   issuedAt: Date
@@ -168,6 +181,12 @@ function extractSearchFields(
   }
 }
 
+/**
+ * Xác nhận phát hành văn bằng lên Blockchain & IPFS
+ * - Kiểm tra trùng lặp mã bằng và mã băm file
+ * - Xác minh sự kiện phát hành on-chain khớp thông tin
+ * - Lưu bản ghi Certificate vào DB và ghi log ChainEvent
+ */
 export async function confirmCertificate(
   input: ConfirmCertificateInput,
   issuer: IssuerDocument
@@ -188,6 +207,7 @@ export async function confirmCertificate(
     throw new HttpError(409, "HASH_EXISTS", "File này đã được cấp chứng chỉ");
   }
 
+  // Xác minh sự kiện phát hành trên Smart Contract
   const event = await findCertificateIssuedEvent(input.txHash, {
     certificateId: input.certificateId,
     fileHash: input.fileHash,
@@ -246,6 +266,7 @@ export async function confirmCertificate(
     throw error;
   }
 
+  // Ghi nhận sự kiện chuỗi vào ChainEvent
   try {
     await ChainEvent.create({
       txHash: input.txHash,
@@ -272,12 +293,14 @@ export async function confirmCertificate(
   return toIssuerCertificate(certificate);
 }
 
+/** Định nghĩa chủ thể thực hiện thao tác (Admin hoặc Issuer) */
 export interface CertificateActor {
   id: string;
   role: "admin" | "issuer";
   walletAddress: string | null;
 }
 
+/** Lấy thông tin chứng chỉ cho Issuer hoặc Admin (kiểm tra quyền sở hữu) */
 export async function getIssuerCertificate(
   certificateId: string,
   actor: CertificateActor
@@ -288,6 +311,7 @@ export async function getIssuerCertificate(
     throw new HttpError(404, "CERTIFICATE_NOT_FOUND", "Không tìm thấy chứng chỉ");
   }
 
+  // Issuer chỉ được xem chứng chỉ do chính mình cấp phát; Admin được xem tất cả
   if (
     actor.role !== "admin" &&
     (!actor.walletAddress ||
@@ -299,6 +323,12 @@ export async function getIssuerCertificate(
   return toIssuerCertificate(doc);
 }
 
+/**
+ * Thu hồi văn bằng (Revoke)
+ * - Kiểm tra phân quyền (Issuer sở hữu hoặc Admin)
+ * - Xác minh giao dịch thu hồi on-chain trên Smart Contract
+ * - Cập nhật trạng thái thành 'revoked'
+ */
 export async function revokeCertificate(
   certificateId: string,
   txHash: string,
@@ -310,6 +340,7 @@ export async function revokeCertificate(
     throw new HttpError(404, "CERTIFICATE_NOT_FOUND", "Không tìm thấy chứng chỉ");
   }
 
+  // Tính lũy thừa: nếu đã thu hồi với cùng txHash thì trả về kết quả thành công
   if (doc.status === "revoked") {
     if (
       doc.revokeTxHash &&
@@ -333,6 +364,7 @@ export async function revokeCertificate(
     }
   }
 
+  // Đối chiếu sự kiện và trạng thái thực tế trên Blockchain
   const event = await findCertificateRevokedEvent(txHash, certificateId);
   const onChain = await getCertificateOnChain(certificateId);
 
@@ -373,6 +405,10 @@ export async function revokeCertificate(
   return toIssuerCertificate(doc);
 }
 
+/**
+ * Tạm khóa văn bằng (Lock)
+ * Chỉ cho phép Issuer đã phát hành thực hiện tạm khóa khi cần thẩm tra
+ */
 export async function lockCertificate(
   certificateId: string,
   txHash: string,
@@ -396,6 +432,7 @@ export async function lockCertificate(
     throw new HttpError(409, "ALREADY_LOCKED", "Chứng chỉ đã bị tạm khoá");
   }
 
+  // Xác minh sự kiện khóa trên chuỗi
   const event = await findCertificateLockedEvent(txHash, certificateId);
   const onChain = await getCertificateOnChain(certificateId);
 
@@ -427,6 +464,10 @@ export async function lockCertificate(
   return toIssuerCertificate(doc);
 }
 
+/**
+ * Mở khóa văn bằng (Unlock)
+ * Trả chứng chỉ từ trạng thái 'locked' về 'active' sau khi kết thúc thẩm tra
+ */
 export async function unlockCertificate(
   certificateId: string,
   txHash: string,
@@ -449,6 +490,7 @@ export async function unlockCertificate(
     throw new HttpError(409, "NOT_LOCKED", "Chứng chỉ không ở trạng thái tạm khoá");
   }
 
+  // Xác minh sự kiện mở khóa trên chuỗi
   const event = await findCertificateUnlockedEvent(txHash, certificateId);
   const onChain = await getCertificateOnChain(certificateId);
 
@@ -480,6 +522,9 @@ export async function unlockCertificate(
   return toIssuerCertificate(doc);
 }
 
+/**
+ * Lấy danh sách văn bằng do một Issuer cụ thể cấp phát (kèm lọc và phân trang)
+ */
 export async function listIssuerCertificates(
   issuer: IssuerDocument,
   query: CertificateListQuery
@@ -519,6 +564,10 @@ export async function listIssuerCertificates(
   };
 }
 
+/**
+ * Lấy danh sách văn bằng toàn hệ thống cho Quản trị viên (Admin)
+ * Cho phép lọc thêm theo ví của Issuer và năm tốt nghiệp
+ */
 export async function listAllCertificates(
   query: AdminCertificateListQuery
 ): Promise<{ data: CertificateIssuerDTO[]; meta: PaginationMeta }> {
@@ -559,6 +608,10 @@ export async function listAllCertificates(
   };
 }
 
+/**
+ * Tra cứu văn bằng công khai (Public Search)
+ * Tự động nhận diện từ khóa `q` là MSSV, Mã bằng, hay Tên/Ngành học
+ */
 export async function searchPublicCertificates(
   query: PublicSearchQuery
 ): Promise<{ data: CertificateSummaryDTO[]; meta: PaginationMeta }> {
@@ -610,6 +663,10 @@ export async function searchPublicCertificates(
   };
 }
 
+/**
+ * Tra cứu chi tiết một văn bằng công khai theo ID
+ * Luôn đối chiếu trạng thái thực tế trực tiếp trên Blockchain Smart Contract
+ */
 export async function getPublicCertificate(
   certificateId: string
 ): Promise<CertificateDetailDTO> {
@@ -630,6 +687,7 @@ export async function getPublicCertificate(
   );
 }
 
+/** Lấy danh sách văn bằng mới phát hành gần đây (che thông tin cá nhân) */
 export async function listRecentCertificates(
   limit: number
 ): Promise<RecentCertificateDTO[]> {
@@ -640,6 +698,10 @@ export async function listRecentCertificates(
   return docs.map(toRecent);
 }
 
+/**
+ * Thẩm định tính hợp lệ của tệp văn bằng thông qua mã băm SHA-256
+ * Đối chiếu mã băm trực tiếp trên Smart Contract
+ */
 export async function verifyCertificateHash(
   fileHash: string
 ): Promise<{
@@ -679,11 +741,12 @@ export async function verifyCertificateHash(
   };
 }
 
+/** Lấy danh mục các giá trị duy nhất (Năm, Ngành, Loại bằng) để phục vụ bộ lọc tìm kiếm */
 export async function getPublicFilters(): Promise<{
   years: number[];
   majors: string[];
   types: string[];
-}> {
+  }> {
   const [years, majors, types] = await Promise.all([
     Certificate.distinct("graduationYear", { graduationYear: { $ne: null } }),
     Certificate.distinct("major", { major: { $ne: null } }),
@@ -697,6 +760,7 @@ export async function getPublicFilters(): Promise<{
   };
 }
 
+/** Lớp dịch vụ quản lý văn bằng chứng chỉ số */
 export class CertificateService {
   listAllCertificates = listAllCertificates;
   getIssuerCertificate = getIssuerCertificate;
@@ -708,4 +772,5 @@ export class CertificateService {
   getPublicFilters = getPublicFilters;
 }
 
+/** Thể hiện Singleton của CertificateService */
 export const certificateService = new CertificateService();
