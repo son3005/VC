@@ -1,3 +1,9 @@
+/**
+ * @file ChainEvent.ts
+ * @description Mô hình dữ liệu Mongoose cho Nhật ký sự kiện Blockchain (ChainEvent Model).
+ * Đóng vai trò là sổ lưu vết bất biến (Audit Trail), hỗ trợ Event Sourcing và đảm bảo tính lũy thừa (Idempotency).
+ */
+
 import {
   Schema,
   model,
@@ -48,6 +54,7 @@ export interface IChainEvent {
   createdAt: Date;
 }
 
+/** Kiểu Document Mongoose đại diện cho một bản ghi IChainEvent */
 export type ChainEventDocument = HydratedDocument<IChainEvent>;
 
 /**
@@ -127,6 +134,7 @@ chainEventSchema.index({ blockNumber: 1 });
 // 3. Chỉ mục kép: Phục vụ truy vấn lịch sử theo loại sự kiện, sắp xếp theo block mới nhất
 chainEventSchema.index({ eventType: 1, blockNumber: -1 });
 
+/** Model Mongoose ChainEvent dùng để thao tác với collection chain_events */
 export const ChainEvent: Model<IChainEvent> = model<IChainEvent>(
   "ChainEvent",
   chainEventSchema
