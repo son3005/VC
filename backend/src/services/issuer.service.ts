@@ -1,3 +1,8 @@
+/**
+ * @file issuer.service.ts
+ * @description Dịch vụ quản lý đơn vị cấp phát (Issuer) và chuẩn bị chứng từ phát hành (prepareCertificate).
+ */
+
 import bcrypt from "bcryptjs";
 import type { FilterQuery } from "mongoose";
 import { env } from "../config/env";
@@ -29,6 +34,7 @@ import {
   getIssuerOnChain,
 } from "./chain.service";
 
+/** Tham số truy vấn danh sách đơn vị phát hành */
 export interface ListIssuersParams {
   q?: string;
   active?: boolean;
@@ -36,11 +42,13 @@ export interface ListIssuersParams {
   limit: number;
 }
 
+/** Kết quả trả về danh sách Issuer kèm phân trang */
 export interface IssuerListResult {
   data: IssuerDTO[];
   meta: PaginationMeta;
 }
 
+/** Chuyển Document sang đối tượng DTO an toàn */
 function toIssuerDTO(issuer: IssuerDocument): IssuerDTO {
   return {
     id: issuer._id.toString(),
@@ -54,10 +62,14 @@ function toIssuerDTO(issuer: IssuerDocument): IssuerDTO {
   };
 }
 
+/** Thoát ký tự đặc biệt cho Regex */
 function escapeRegex(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
+/**
+ * Lấy danh sách các đơn vị cấp phát (kèm tìm kiếm và lọc trạng thái)
+ */
 export async function listIssuers(
   params: ListIssuersParams
 ): Promise<IssuerListResult> {
@@ -93,11 +105,18 @@ export async function listIssuers(
   };
 }
 
+/**
+ * Tạo mới hoặc kích hoạt đơn vị cấp phát (Issuer)
+ * - Kiểm tra trùng lặp ví, mã đơn vị và email
+ * - Hỗ trợ gán tài khoản cũ (userId) hoặc tạo mới tài khoản (email + password)
+ * - Xác minh giao dịch cấp quyền on-chain trên Smart Contract
+ */
 export async function createIssuer(
   input: CreateIssuerInput
 ): Promise<IssuerDTO> {
   const wallet = input.walletAddress.toLowerCase();
 
+  // Kiểm tra trùng lặp mã đơn vị hoặc địa chỉ ví
   const existingIssuer = await Issuer.findOne({
     $or: [{ walletAddress: wallet }, { code: input.code }],
   });
@@ -109,6 +128,7 @@ export async function createIssuer(
     throw new HttpError(409, "WALLET_IN_USE", "Ví đã được dùng cho issuer khác");
   }
 
+  // Kiểm tra email nếu chọn kịch bản tạo mới tài khoản
   if (!input.userId && input.email) {
     const emailOwner = await User.findOne({ email: input.email });
     if (emailOwner) {
@@ -118,6 +138,7 @@ export async function createIssuer(
 
   let user = null;
 
+  // Kịch bản 1: Liên kết với tài khoản người dùng đã có
   if (input.userId) {
     user = await User.findById(input.userId);
 
@@ -142,6 +163,7 @@ export async function createIssuer(
     }
   }
 
+  // Đảm bảo ví chưa bị tài khoản khác sử dụng
   const walletOwner = await User.findOne({ walletAddress: wallet });
   if (
     walletOwner &&
@@ -150,6 +172,7 @@ export async function createIssuer(
     throw new HttpError(409, "WALLET_IN_USE", "Ví đã được dùng cho tài khoản khác");
   }
 
+  // Xác minh sự kiện thêm Issuer trên Smart Contract
   await findIssuerUpdatedEvent(input.txHash, wallet, input.name);
   const onChain = await getIssuerOnChain(wallet);
 
@@ -171,6 +194,7 @@ export async function createIssuer(
 
   let createdUserId: string | null = null;
 
+  // Kịch bản 2: Tạo mới tài khoản người dùng kèm mã hóa mật khẩu Bcrypt
   if (!user && input.email && input.password) {
     try {
       const passwordHash = await bcrypt.hash(input.password, 10);
@@ -196,6 +220,7 @@ export async function createIssuer(
 
   let issuer: IssuerDocument;
 
+  // Tạo bản ghi Issuer trong DB
   try {
     issuer = await Issuer.create({
       name: input.name,
@@ -209,6 +234,7 @@ export async function createIssuer(
       chainAddedAt: new Date(),
     });
   } catch (error) {
+    // Hoàn tác tạo User nếu tạo Issuer thất bại
     if (createdUserId) {
       await User.deleteOne({ _id: createdUserId }).catch(() => undefined);
     }
@@ -222,6 +248,7 @@ export async function createIssuer(
     throw error;
   }
 
+  // Cập nhật địa chỉ ví vào tài khoản người dùng
   if (user) {
     try {
       user.walletAddress = wallet;
@@ -244,6 +271,11 @@ export async function createIssuer(
   return toIssuerDTO(issuer);
 }
 
+/**
+ * Vô hiệu hóa đơn vị cấp phát (Deactivate)
+ * - Xác minh giao dịch hủy quyền on-chain
+ * - Cập nhật isActive = false và ghi log ChainEvent
+ */
 export async function deactivateIssuer(
   issuerId: string,
   txHash: string
@@ -254,10 +286,12 @@ export async function deactivateIssuer(
     throw new HttpError(404, "ISSUER_NOT_FOUND", "Không tìm thấy đơn vị cấp");
   }
 
+  // Tính lũy thừa: nếu đã vô hiệu hóa thì trả về kết quả ngay
   if (!issuer.isActive && !issuer.onChainActive) {
     return toIssuerDTO(issuer);
   }
 
+  // Xác minh sự kiện tắt kích hoạt trên Blockchain
   const event = await findIssuerUpdatedEvent(
     txHash,
     issuer.walletAddress,
@@ -274,6 +308,7 @@ export async function deactivateIssuer(
   issuer.onChainActive = false;
   await issuer.save();
 
+  // Ghi log sự kiện vào ChainEvent
   await ChainEvent.create({
     txHash,
     logIndex: event.logIndex,
@@ -296,6 +331,7 @@ export async function deactivateIssuer(
   return toIssuerDTO(issuer);
 }
 
+/** Lớp dịch vụ Issuer kế thừa CertificateService */
 export class IssuerService extends CertificateService {
   confirmCertificate = confirmCertificate;
   listIssuerCertificates = listIssuerCertificates;
@@ -304,8 +340,10 @@ export class IssuerService extends CertificateService {
   unlockCertificate = unlockCertificate;
 }
 
+/** Thể hiện Singleton duy nhất của IssuerService */
 export const issuerService = new IssuerService();
 
+/** Kết quả trả về sau bước chuẩn bị chứng chỉ */
 export interface PreparedCertificate {
   cid: string;
   fileHash: string;
@@ -315,6 +353,14 @@ export interface PreparedCertificate {
   filename: string;
 }
 
+/**
+ * Bước 1: Chuẩn bị văn bằng (Prepare Certificate)
+ * - Kiểm tra trùng lặp mã bằng
+ * - Sinh file PDF có gắn kèm mã QR xác thực
+ * - Tính toán mã băm SHA-256 của file PDF
+ * - Tải tệp lên mạng lưu trữ phân tán IPFS (Pinata)
+ * - Trả về CID và File Hash để Issuer ký và mint on-chain
+ */
 export async function prepareCertificate(
   input: PrepareCertificateInput,
   issuer: IssuerDocument
@@ -331,6 +377,7 @@ export async function prepareCertificate(
     .trim()
     .replace(/\/$/, "");
 
+  // 1. Tạo tệp PDF văn bằng
   const pdf = await certificatePdfService.generate({
     certificateType: input.certificateType,
     certificateId: input.certificateId,
@@ -342,13 +389,17 @@ export async function prepareCertificate(
     details: input.details as CertificateDetails,
   });
 
+  // 2. Tính mã băm SHA-256 của tệp PDF
   const fileHash = sha256Buffer(pdf.buffer);
+
+  // 3. Ghim tệp lên IPFS qua Pinata
   const pin = await pinataService.pinFileToIPFS(
     pdf.buffer,
     pdf.filename,
     "application/pdf"
   );
 
+  // 4. Trả về metadata kỹ thuật để Issuer ký trên ví Web3
   return {
     cid: pin.cid,
     fileHash,
