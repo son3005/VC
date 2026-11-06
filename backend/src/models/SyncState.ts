@@ -1,3 +1,9 @@
+/**
+ * @file SyncState.ts
+ * @description Mô hình dữ liệu Mongoose cho Trạng thái đồng bộ chuỗi khối (SyncState Model).
+ * Lưu trữ con trỏ kiểm soát (Checkpoint / High-Water Mark) theo dõi tiến độ quét sự kiện từ Ethereum về MongoDB.
+ */
+
 import {
   Schema,
   model,
@@ -28,6 +34,7 @@ export interface ISyncState {
   updatedAt: Date;
 }
 
+/** Kiểu HydratedDocument của Mongoose đại diện cho một bản ghi SyncState */
 export type SyncStateDocument = HydratedDocument<ISyncState>;
 
 /**
@@ -76,6 +83,7 @@ const syncStateSchema = new Schema<ISyncState>(
 // Chỉ mục Unique theo khóa định danh: Đảm bảo mỗi tiến trình đồng bộ chỉ có đúng 1 con trỏ trạng thái duy nhất
 syncStateSchema.index({ key: 1 }, { unique: true });
 
+/** Model Mongoose SyncState dùng để thao tác với bộ sưu tập sync_states */
 export const SyncState: Model<ISyncState> = model<ISyncState>(
   "SyncState",
   syncStateSchema
