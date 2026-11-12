@@ -1,5 +1,12 @@
 'use client';
 
+/**
+ * @file page.tsx
+ * @description Trang chi tiết và xác minh văn bằng công khai (/c/[id]).
+ * Hiển thị thông tin sinh viên, chi tiết chứng chỉ, mã QR xác minh tức thì
+ * và bằng chứng mật mã học neo trên chuỗi khối Ethereum (Transaction Hash, Block, IPFS CID).
+ */
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
@@ -29,10 +36,12 @@ import {
 import toast from 'react-hot-toast';
 
 export default function CertificateDetailPage() {
+  // Lấy mã chứng chỉ từ URL động (/c/[id]) và giải mã ký tự đặc biệt
   const params = useParams();
   const router = useRouter();
   const certificateId = decodeURIComponent((params.id as string) || '');
 
+  // Trạng thái URL hiện tại phục vụ sinh mã QR và sao chép liên kết chia sẻ
   const [currentUrl, setCurrentUrl] = useState('');
   const [copiedLink, setCopiedLink] = useState(false);
 
@@ -42,6 +51,7 @@ export default function CertificateDetailPage() {
     }
   }, []);
 
+  // Truy vấn dữ liệu chi tiết chứng chỉ từ Backend API với React Query
   const {
     data: certData,
     isLoading,
@@ -52,11 +62,12 @@ export default function CertificateDetailPage() {
     queryKey: ['certificateDetail', certificateId],
     queryFn: () => api.certificateDetail(certificateId),
     enabled: !!certificateId,
-    staleTime: 30 * 1000,
+    staleTime: 30 * 1000, // Giữ dữ liệu hợp lệ trong 30 giây trước khi fetch lại
   });
 
   const cert = certData?.data;
 
+  // Xử lý sao chép liên kết xác thực vào clipboard
   const handleCopyLink = () => {
     if (typeof window !== 'undefined') {
       navigator.clipboard.writeText(window.location.href);
@@ -66,6 +77,7 @@ export default function CertificateDetailPage() {
     }
   };
 
+  // 1. Trạng thái đang tải dữ liệu: Hiển thị giao diện Skeleton giả lập thẻ bằng
   if (isLoading) {
     return (
       <div className="py-12 sm:py-16 flex-1 flex flex-col">
@@ -88,6 +100,7 @@ export default function CertificateDetailPage() {
     );
   }
 
+  // 2. Trạng thái lỗi hoặc không tìm thấy chứng chỉ (404)
   if (isError || !cert) {
     const is404 = error instanceof ApiRequestError && error.status === 404;
 
@@ -121,6 +134,7 @@ export default function CertificateDetailPage() {
     );
   }
 
+  // Kiểm tra cờ trạng thái văn bằng trên Blockchain
   const isRevoked = cert.status === 'revoked';
   const isLocked = cert.status === 'locked';
   const typeLabel = CERTIFICATE_TYPE_LABELS[cert.certificateType] || cert.certificateType;
@@ -128,7 +142,7 @@ export default function CertificateDetailPage() {
   return (
     <div className="py-8 sm:py-14 flex-1 flex flex-col">
       <Container className="max-w-4xl space-y-6">
-        {/* Thanh điều hướng quay lại & Chia sẻ */}
+        {/* Thanh công cụ: Điều hướng quay lại, nút Chia sẻ và Tải PDF gốc từ IPFS */}
         <div className="flex items-center justify-between">
           <Link
             href="/search"
@@ -160,7 +174,7 @@ export default function CertificateDetailPage() {
           </div>
         </div>
 
-        {/* Banner cảnh báo ĐÃ THU HỒI */}
+        {/* Cảnh báo đặc biệt: Văn bằng đã bị thu hồi hiệu lực trên Smart Contract */}
         {isRevoked && (
           <div className="p-4 sm:p-5 rounded-2xl border-2 border-[#E6606A] bg-[#E6606A]/10 text-[#B23F4A] flex items-start gap-3.5 shadow-sm">
             <AlertTriangle className="w-6 h-6 shrink-0 mt-0.5" />
@@ -176,7 +190,7 @@ export default function CertificateDetailPage() {
           </div>
         )}
 
-        {/* Banner cảnh báo TẠM KHOÁ */}
+        {/* Cảnh báo: Văn bằng đang bị tạm khóa phục vụ công tác xác minh */}
         {isLocked && (
           <div className="p-4 sm:p-5 rounded-2xl border-2 border-[#E6AB42] bg-[#E6AB42]/10 text-[#8A6418] flex items-start gap-3.5 shadow-sm">
             <AlertTriangle className="w-6 h-6 shrink-0 mt-0.5" />
@@ -191,15 +205,15 @@ export default function CertificateDetailPage() {
           </div>
         )}
 
-        {/* Card văn bằng chính (Academic Diploma Design) */}
+        {/* Thẻ hiển thị văn bằng chính (Thiết kế phôi bằng học thuật - Academic Diploma) */}
         <div className="relative rounded-3xl border-2 border-[#E3D5B8] bg-[#FFFDF7] p-6 sm:p-12 shadow-md overflow-hidden">
-          {/* Viền hoa văn học thuật góc card */}
+          {/* Họa tiết hoa văn học thuật tại 4 góc phôi bằng */}
           <div className="absolute top-0 left-0 w-24 h-24 border-t-4 border-l-4 border-[#E6AB42]/40 rounded-tl-3xl pointer-events-none" />
           <div className="absolute top-0 right-0 w-24 h-24 border-t-4 border-r-4 border-[#E6AB42]/40 rounded-tr-3xl pointer-events-none" />
           <div className="absolute bottom-0 left-0 w-24 h-24 border-b-4 border-l-4 border-[#E6AB42]/40 rounded-bl-3xl pointer-events-none" />
           <div className="absolute bottom-0 right-0 w-24 h-24 border-b-4 border-r-4 border-[#E6AB42]/40 rounded-br-3xl pointer-events-none" />
 
-          {/* Phần đầu: Logo trường & Huy hiệu trạng thái */}
+          {/* Phần đầu: Logo trường đại học, Tên trường và Huy hiệu trạng thái */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#E3D5B8]/80 pb-6 mb-8">
             <div className="flex items-center gap-3.5">
               <div className="w-20 h-20 relative flex items-center justify-center p-1 bg-[#FAF4DF] rounded-2xl border border-[#E3D5B8] shadow-2xs">
@@ -220,7 +234,7 @@ export default function CertificateDetailPage() {
             </div>
           </div>
 
-          {/* Nội dung trung tâm của văn bằng */}
+          {/* Nội dung trung tâm: Thông tin sinh viên, ngành học và loại văn bằng */}
           <div className="text-center space-y-4 max-w-2xl mx-auto py-2">
             <span className="font-mono text-xs font-bold text-[#6F5C4A] bg-[#FAF4DF] px-3 py-1 rounded-full border border-[#E3D5B8]">
               {cert.certificateId}
@@ -259,9 +273,9 @@ export default function CertificateDetailPage() {
             </div>
           </div>
 
-          {/* Lưới đơn vị cấp & QR xác minh */}
+          {/* Lưới thông tin đơn vị phát hành & Mã QR xác minh tức thì */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6 mt-6 border-t border-[#E3D5B8]/80">
-            {/* Cột 1: Đơn vị cấp & Ngày */}
+            {/* Cột 1: Thông tin đơn vị cấp phát & Bản mẫu phôi bằng (Template) */}
             <div className="p-4 rounded-2xl bg-[#FAF4DF]/60 border border-[#E3D5B8]/60 space-y-3">
               <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[#010E1C]">
                 <Building className="w-4 h-4 text-[#E6AB42]" />
@@ -280,7 +294,7 @@ export default function CertificateDetailPage() {
               </div>
             </div>
 
-            {/* Cột 3: QR Code xác minh tức thì */}
+            {/* Cột 2: Mã QR Code xác minh trực tiếp trên thiết bị di động */}
             <div className="p-4 rounded-2xl bg-[#FAF4DF]/60 border border-[#E3D5B8]/60 flex flex-col items-center justify-center text-center space-y-2">
               <div className="p-2 bg-white rounded-xl border border-[#E3D5B8] shadow-2xs">
                 {currentUrl ? (
@@ -304,7 +318,7 @@ export default function CertificateDetailPage() {
           </div>
         </div>
 
-        {/* Khối chứng minh Blockchain Provenance */}
+        {/* Khối chứng minh mật mã học trên Blockchain Ethereum (Blockchain Provenance) */}
         <div className="p-6 sm:p-8 rounded-2xl border border-[#E3D5B8] bg-[#FFFDF7] space-y-4">
           <div className="flex items-center justify-between border-b border-[#E3D5B8]/60 pb-3">
             <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#010E1C]">
@@ -317,7 +331,7 @@ export default function CertificateDetailPage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs font-mono">
-            {/* Giao dịch TxHash */}
+            {/* Hash giao dịch cấp bằng on-chain (kèm liên kết mở Sepolia Etherscan) */}
             <div className="p-3 rounded-xl bg-[#FAF4DF] border border-[#E3D5B8]/60 space-y-1">
               <span className="text-[#6F5C4A] text-[11px]">Transaction Hash (Ethereum Sepolia):</span>
               <div className="flex items-center justify-between">
@@ -338,7 +352,7 @@ export default function CertificateDetailPage() {
               </div>
             </div>
 
-            {/* Block Number */}
+            {/* Số hiệu khối Ethereum chứa sự kiện cấp bằng */}
             <div className="p-3 rounded-xl bg-[#FAF4DF] border border-[#E3D5B8]/60 space-y-1">
               <span className="text-[#6F5C4A] text-[11px]">Khối Blockchain (Block Number):</span>
               <div className="text-[#010E1C] font-bold">
@@ -346,7 +360,7 @@ export default function CertificateDetailPage() {
               </div>
             </div>
 
-            {/* IPFS CID */}
+            {/* Mã băm nội dung IPFS (CID) lưu trữ tệp PDF gốc */}
             <div className="p-3 rounded-xl bg-[#FAF4DF] border border-[#E3D5B8]/60 space-y-1">
               <span className="text-[#6F5C4A] text-[11px]">Mã định danh IPFS (CID):</span>
               <div className="flex items-center justify-between">
@@ -367,7 +381,7 @@ export default function CertificateDetailPage() {
               </div>
             </div>
 
-            {/* Kích thước & Loại tệp */}
+            {/* Tên tệp tin và định dạng tài liệu lưu trữ */}
             <div className="p-3 rounded-xl bg-[#FAF4DF] border border-[#E3D5B8]/60 space-y-1">
               <span className="text-[#6F5C4A] text-[11px]">Tài liệu gốc lưu trữ:</span>
               <div className="text-[#010E1C] truncate">
