@@ -1,5 +1,12 @@
 'use client';
 
+/**
+ * @file page.tsx
+ * @description Trang quản trị toàn bộ văn bằng trong hệ thống dành cho Admin (/admin/certificates).
+ * Cung cấp tính năng tìm kiếm debounced, lọc đa chiều (trạng thái, loại bằng), phân trang,
+ * và quyền thu hồi khẩn cấp văn bằng trực tiếp trên Smart Contract Ethereum Sepolia.
+ */
+
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -38,15 +45,17 @@ export default function AdminCertificatesPage() {
   const { user } = useAuth();
   const { isCorrectNetwork, switchToSepolia } = useWallet();
 
+  // Trạng thái tìm kiếm với kỹ thuật Debounce 400ms giảm tải truy vấn API
   const [searchInput, setSearchInput] = useState('');
   const debouncedSearch = useDebounce(searchInput, 400);
 
+  // Bộ lọc dữ liệu và điều khiển phân trang
   const [statusFilter, setStatusFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState('');
   const [page, setPage] = useState(1);
   const limit = 10;
 
-  // Modal Thu hồi văn bằng khẩn cấp bởi Admin
+  // Trạng thái điều khiển Modal Thu hồi văn bằng khẩn cấp với quyền Admin
   const [revokingCert, setRevokingCert] = useState<CertificateIssuer | null>(null);
   const [confirmInput, setConfirmInput] = useState('');
   const [isRevoking, setIsRevoking] = useState(false);
@@ -54,6 +63,7 @@ export default function AdminCertificatesPage() {
   const [txHash, setTxHash] = useState<string | null>(null);
   const [txError, setTxError] = useState<string | null>(null);
 
+  // Đóng gói các tham số truy vấn tìm kiếm, lọc và phân trang
   const queryParams = new URLSearchParams();
   queryParams.set('page', page.toString());
   queryParams.set('limit', limit.toString());
@@ -61,10 +71,11 @@ export default function AdminCertificatesPage() {
   if (statusFilter && statusFilter !== 'all') queryParams.set('status', statusFilter);
   if (typeFilter) queryParams.set('type', typeFilter);
 
+  // Truy vấn danh sách văn bằng quản trị từ Backend API với React Query
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['adminCertificates', queryParams.toString()],
     queryFn: () => api.adminCertificates(queryParams),
-    staleTime: 10 * 1000,
+    staleTime: 10 * 1000, // Dữ liệu cache trong 10 giây
   });
 
   const certificates = data?.data || [];
@@ -72,6 +83,7 @@ export default function AdminCertificatesPage() {
   const totalPages = meta?.totalPages || 1;
   const totalCount = meta?.total || certificates.length;
 
+  // Mở modal xác nhận thu hồi văn bằng và khởi tạo lại trạng thái giao dịch
   const handleOpenRevokeModal = (cert: CertificateIssuer, e: React.MouseEvent) => {
     e.stopPropagation();
     setRevokingCert(cert);
@@ -81,7 +93,9 @@ export default function AdminCertificatesPage() {
     setTxError(null);
   };
 
+  // Thực thi quy trình thu hồi văn bằng on-chain và đồng bộ về cơ sở dữ liệu
   const handleConfirmRevoke = async () => {
+    // Kiểm tra tính chính xác của chuỗi xác nhận người dùng nhập vào
     if (!revokingCert || confirmInput.trim() !== revokingCert.certificateId) {
       toast.error('Mã văn bằng xác nhận không khớp.');
       return;
@@ -92,17 +106,21 @@ export default function AdminCertificatesPage() {
     setIsRevoking(true);
 
     try {
+      // 1. Xác thực đúng mạng Sepolia và địa chỉ ví ký của Admin
       await assertCorrectNetworkAndSigner(user?.walletAddress);
 
+      // 2. Ký và gửi giao dịch thu hồi lên Smart Contract CertificateRegistry
       const tx = await revokeCertificateOnChain(revokingCert.certificateId);
       setTxHash(tx);
       setTxState('mining');
 
+      // 3. Thông báo cho Backend API để cập nhật trạng thái văn bằng sang "revoked"
       await api.revokeCertificate(revokingCert.certificateId, tx);
 
       setTxState('success');
       toast.success('Đã thu hồi văn bằng thành công với quyền Admin!');
 
+      // Tự động đóng modal và tải lại dữ liệu sau 1.5 giây
       setTimeout(() => {
         setRevokingCert(null);
         setTxState('idle');
@@ -110,6 +128,7 @@ export default function AdminCertificatesPage() {
       }, 1500);
     } catch (err: unknown) {
       const errorObj = err as { code?: number | string; message?: string };
+      // Xử lý khi người dùng từ chối ký giao dịch trên ví MetaMask (Error code 4001)
       if (errorObj?.code === 4001 || errorObj?.message?.includes('user rejected')) {
         setTxState('rejected');
         setTxError('Bạn đã hủy ký giao dịch thu hồi.');
@@ -124,6 +143,7 @@ export default function AdminCertificatesPage() {
     }
   };
 
+  // Cấu hình danh sách lựa chọn cho bộ lọc trạng thái văn bằng
   const statusOptions = [
     { value: 'all', label: 'Tất cả trạng thái' },
     { value: 'active', label: 'Hợp lệ' },
@@ -131,6 +151,7 @@ export default function AdminCertificatesPage() {
     { value: 'locked', label: 'Tạm khoá' },
   ];
 
+  // Cấu hình danh sách lựa chọn cho bộ lọc loại văn bằng
   const typeOptions = [
     { value: '', label: 'Tất cả loại văn bằng' },
     ...Object.entries(CERTIFICATE_TYPE_LABELS).map(([value, label]) => ({
@@ -142,7 +163,7 @@ export default function AdminCertificatesPage() {
   return (
     <div className="py-8 sm:py-12 flex-1 flex flex-col">
       <Container className="space-y-8">
-        {/* Header */}
+        {/* Phần đầu trang: Tiêu đề và mô tả phạm vi quyền hạn */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="space-y-1">
             <h1 className="font-serif text-2xl sm:text-3xl font-bold text-[#010E1C]">
@@ -154,7 +175,7 @@ export default function AdminCertificatesPage() {
           </div>
         </div>
 
-        {/* Thanh tìm kiếm & Bộ lọc */}
+        {/* Thanh công cụ: Tìm kiếm từ khóa và các bộ lọc loại bằng, trạng thái */}
         <div className="p-4 rounded-2xl border border-[#E3D5B8] bg-[#FFFDF7] shadow-2xs grid grid-cols-1 sm:grid-cols-3 gap-3">
           <Input
             value={searchInput}
@@ -185,7 +206,7 @@ export default function AdminCertificatesPage() {
           />
         </div>
 
-        {/* Bảng danh sách văn bằng */}
+        {/* Danh sách văn bằng: Hiển thị theo các trạng thái Loading, Error, Empty hoặc Table dữ liệu */}
         {isLoading ? (
           <div className="p-6 rounded-2xl border border-[#E3D5B8] bg-[#FFFDF7] space-y-3">
             {[1, 2, 3, 4, 5].map((i) => (
@@ -324,7 +345,7 @@ export default function AdminCertificatesPage() {
               </div>
             </div>
 
-            {/* Phân trang */}
+            {/* Điều hướng phân trang */}
             {totalPages > 1 && (
               <div className="flex items-center justify-between pt-4 border-t border-[#E3D5B8]/60">
                 <p className="text-xs text-[#6F5C4A]">
@@ -360,7 +381,7 @@ export default function AdminCertificatesPage() {
           </div>
         )}
 
-        {/* Modal Thu hồi quyền Admin */}
+        {/* Modal Thu hồi văn bằng khẩn cấp với quyền Quản trị viên */}
         <Modal
           isOpen={!!revokingCert}
           onClose={() => {
