@@ -4,13 +4,22 @@ import { loadFixture, time } from "@nomicfoundation/hardhat-toolbox/network-help
 import { anyValue } from "@nomicfoundation/hardhat-chai-matchers/withArgs";
 import { keccak256, toUtf8Bytes } from "ethers";
 
+// ============================================================================
+// Dữ liệu mẫu (Mock data) dùng xuyên suốt các kịch bản kiểm thử
+// ============================================================================
 const ISSUER_NAME = "Khoa Công nghệ Thông tin";
 const CERT_ID = "UIT-DEG-2026-0001";
 const FILE_HASH = "sha256:" + "a".repeat(64);
 const CID = "bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi";
 
+// Hàm tiện ích: Băm chuỗi mã chứng chỉ sang bytes32 keccak256 để so sánh với event on-chain
 const idHash = (id: string) => keccak256(toUtf8Bytes(id));
 
+// ============================================================================
+// Fixtures: Khởi tạo trạng thái môi trường test ban đầu (tối ưu tốc độ với snapshot)
+// ============================================================================
+
+// Fixture 1: Triển khai hợp đồng mới tinh với 3 tài khoản ví test
 async function deployFixture() {
   const [owner, issuer, other] = await ethers.getSigners();
   const Registry = await ethers.getContractFactory("CertificateRegistry");
@@ -19,12 +28,14 @@ async function deployFixture() {
   return { registry, owner, issuer, other };
 }
 
+// Fixture 2: Triển khai hợp đồng và cấp quyền Issuer cho ví `issuer`
 async function issuerFixture() {
   const base = await deployFixture();
   await base.registry.addIssuer(base.issuer.address, ISSUER_NAME);
   return base;
 }
 
+// Fixture 3: Triển khai hợp đồng, thêm Issuer và cấp sẵn 1 chứng chỉ mẫu
 async function issuedFixture() {
   const base = await issuerFixture();
   await base.registry
@@ -33,26 +44,35 @@ async function issuedFixture() {
   return base;
 }
 
+// ============================================================================
+// Bộ kiểm thử tự động cho Smart Contract CertificateRegistry
+// ============================================================================
 describe("CertificateRegistry", () => {
+  // 1. Kiểm tra trạng thái khởi tạo sau khi deploy
   describe("Deployment", () => {
     it("sets the deployer as owner", async () => {
+      // Người deploy phải là Owner quản trị hợp đồng
       const { registry, owner } = await loadFixture(deployFixture);
       expect(await registry.owner()).to.equal(owner.address);
     });
 
     it("starts with zero certificates", async () => {
+      // Ban đầu số lượng chứng chỉ phải bằng 0
       const { registry } = await loadFixture(deployFixture);
       expect(await registry.totalCertificates()).to.equal(0);
     });
 
     it("exposes a version", async () => {
+      // Phiên bản hợp đồng đúng như định nghĩa (1.0.0)
       const { registry } = await loadFixture(deployFixture);
       expect(await registry.VERSION()).to.equal("1.0.0");
     });
   });
 
+  // 2. Kiểm tra nghiệp vụ quản lý đơn vị cấp bằng (Issuer Management)
   describe("Issuer management", () => {
     it("allows owner to add an issuer", async () => {
+      // Owner có quyền thêm mới một đơn vị cấp bằng và bắn ra sự kiện IssuerUpdated
       const { registry, issuer } = await loadFixture(deployFixture);
 
       await expect(registry.addIssuer(issuer.address, ISSUER_NAME))
@@ -66,6 +86,7 @@ describe("CertificateRegistry", () => {
     });
 
     it("rejects addIssuer from non-owner", async () => {
+      // Tài khoản không phải Owner sẽ bị từ chối với lỗi NotOwner
       const { registry, issuer, other } = await loadFixture(deployFixture);
 
       await expect(
@@ -74,6 +95,7 @@ describe("CertificateRegistry", () => {
     });
 
     it("rejects zero address", async () => {
+      // Không cho phép thêm địa chỉ ví rỗng (0x0)
       const { registry } = await loadFixture(deployFixture);
 
       await expect(
@@ -82,6 +104,7 @@ describe("CertificateRegistry", () => {
     });
 
     it("rejects empty name", async () => {
+      // Không cho phép tên đơn vị cấp bằng rỗng
       const { registry, issuer } = await loadFixture(deployFixture);
 
       await expect(
@@ -90,6 +113,7 @@ describe("CertificateRegistry", () => {
     });
 
     it("rejects name longer than 100 bytes", async () => {
+      // Từ chối tên đơn vị dài vượt quá giới hạn 100 ký tự
       const { registry, issuer } = await loadFixture(deployFixture);
 
       await expect(
@@ -98,6 +122,7 @@ describe("CertificateRegistry", () => {
     });
 
     it("keeps original addedAt when re-activating", async () => {
+      // Khi kích hoạt lại hoặc cập nhật tên issuer, giữ nguyên mốc thời gian addedAt ban đầu
       const { registry, issuer } = await loadFixture(issuerFixture);
       const first = await registry.getIssuer(issuer.address);
 
@@ -111,6 +136,7 @@ describe("CertificateRegistry", () => {
     });
 
     it("allows owner to remove an issuer", async () => {
+      // Owner có quyền hủy kích hoạt một đơn vị cấp bằng
       const { registry, issuer } = await loadFixture(issuerFixture);
 
       await expect(registry.removeIssuer(issuer.address))
@@ -122,6 +148,7 @@ describe("CertificateRegistry", () => {
     });
 
     it("rejects removing an unknown issuer", async () => {
+      // Báo lỗi NotIssuer nếu cố gắng xóa một ví chưa từng được thêm
       const { registry, other } = await loadFixture(deployFixture);
 
       await expect(
@@ -130,6 +157,7 @@ describe("CertificateRegistry", () => {
     });
 
     it("rejects removing an already inactive issuer", async () => {
+      // Báo lỗi nếu cố gắng xóa một đơn vị đã bị vô hiệu hóa trước đó
       const { registry, issuer } = await loadFixture(issuerFixture);
       await registry.removeIssuer(issuer.address);
 
@@ -139,8 +167,10 @@ describe("CertificateRegistry", () => {
     });
   });
 
+  // 3. Kiểm tra nghiệp vụ cấp chứng chỉ (Issuing Certificates)
   describe("Issuing certificates", () => {
     it("issues a certificate and emits the event", async () => {
+      // Cấp chứng chỉ thành công, bắn sự kiện CertificateIssued và tăng bộ đếm
       const { registry, issuer } = await loadFixture(issuerFixture);
 
       await expect(
@@ -154,6 +184,7 @@ describe("CertificateRegistry", () => {
     });
 
     it("stores certificate fields correctly", async () => {
+      // Dữ liệu chứng chỉ lưu trên storage khớp chính xác với thông tin được cấp
       const { registry, issuer } = await loadFixture(issuedFixture);
       const cert = await registry.getCertificate(CERT_ID);
 
@@ -166,6 +197,7 @@ describe("CertificateRegistry", () => {
     });
 
     it("rejects issuance from a non-issuer", async () => {
+      // Ví không có quyền Issuer sẽ không thể cấp chứng chỉ
       const { registry, other } = await loadFixture(deployFixture);
 
       await expect(
@@ -174,6 +206,7 @@ describe("CertificateRegistry", () => {
     });
 
     it("rejects issuance from a removed issuer", async () => {
+      // Đơn vị đã bị hủy quyền không thể cấp chứng chỉ mới
       const { registry, issuer } = await loadFixture(issuerFixture);
       await registry.removeIssuer(issuer.address);
 
@@ -183,6 +216,7 @@ describe("CertificateRegistry", () => {
     });
 
     it("rejects an empty certificate id", async () => {
+      // Không cho phép mã chứng chỉ rỗng
       const { registry, issuer } = await loadFixture(issuerFixture);
 
       await expect(
@@ -191,6 +225,7 @@ describe("CertificateRegistry", () => {
     });
 
     it("rejects an empty file hash", async () => {
+      // Không cho phép mã hash file rỗng
       const { registry, issuer } = await loadFixture(issuerFixture);
 
       await expect(
@@ -199,6 +234,7 @@ describe("CertificateRegistry", () => {
     });
 
     it("rejects an empty CID", async () => {
+      // Không cho phép CID IPFS rỗng
       const { registry, issuer } = await loadFixture(issuerFixture);
 
       await expect(
@@ -207,6 +243,7 @@ describe("CertificateRegistry", () => {
     });
 
     it("rejects a certificate id longer than 64 bytes", async () => {
+      // Từ chối mã chứng chỉ vượt quá 64 ký tự
       const { registry, issuer } = await loadFixture(issuerFixture);
 
       await expect(
@@ -215,6 +252,7 @@ describe("CertificateRegistry", () => {
     });
 
     it("rejects a duplicate certificate id", async () => {
+      // Chống trùng lặp mã chứng chỉ: không cho phép cấp 2 lần cùng một ID
       const { registry, issuer } = await loadFixture(issuedFixture);
 
       await expect(
@@ -223,6 +261,7 @@ describe("CertificateRegistry", () => {
     });
 
     it("rejects a duplicate file hash", async () => {
+      // Chống trùng lặp file: không cho phép cấp 2 chứng chỉ có cùng mã hash PDF
       const { registry, issuer } = await loadFixture(issuedFixture);
 
       await expect(
@@ -233,6 +272,7 @@ describe("CertificateRegistry", () => {
     });
 
     it("allows the same issuer to issue multiple certificates", async () => {
+      // Cho phép một đơn vị cấp nhiều chứng chỉ khác nhau và tăng đúng biến đếm
       const { registry, issuer } = await loadFixture(issuedFixture);
 
       await registry
@@ -248,8 +288,10 @@ describe("CertificateRegistry", () => {
     });
   });
 
+  // 4. Kiểm tra các hàm truy vấn và đối soát (Queries & Verification)
   describe("Queries", () => {
     it("reverts when certificate does not exist", async () => {
+      // Báo lỗi CertificateNotFound khi truy vấn mã chứng chỉ không tồn tại
       const { registry } = await loadFixture(deployFixture);
 
       await expect(
@@ -258,12 +300,14 @@ describe("CertificateRegistry", () => {
     });
 
     it("returns full certificate data", async () => {
+      // Trả về đầy đủ thông tin chi tiết của chứng chỉ
       const { registry } = await loadFixture(issuedFixture);
       const cert = await registry.getCertificate(CERT_ID);
       expect(cert.certificateId).to.equal(CERT_ID);
     });
 
     it("verifies by hash and reports validity", async () => {
+      // Tra cứu và xác minh bằng mã băm file SHA-256 (hợp lệ, trả về ID và ví người cấp)
       const { registry, issuer } = await loadFixture(issuedFixture);
       const result = await registry.verifyByHash(FILE_HASH);
 
@@ -274,6 +318,7 @@ describe("CertificateRegistry", () => {
     });
 
     it("returns exists=false for an unknown hash", async () => {
+      // Trả về exists=false khi file hash không khớp với bất kỳ chứng chỉ nào trên chain
       const { registry } = await loadFixture(deployFixture);
       const result = await registry.verifyByHash("sha256:" + "f".repeat(64));
 
@@ -283,6 +328,7 @@ describe("CertificateRegistry", () => {
     });
 
     it("isValid returns true for active and false for unknown", async () => {
+      // Kiểm tra tính hợp lệ nhanh: true nếu đang hoạt động, false nếu không tồn tại
       const { registry } = await loadFixture(issuedFixture);
 
       expect(await registry.isValid(CERT_ID)).to.equal(true);
@@ -290,6 +336,7 @@ describe("CertificateRegistry", () => {
     });
 
     it("returns an empty issuer for an unknown address", async () => {
+      // Truy vấn thông tin của ví chưa được cấp quyền trả về struct rỗng
       const { registry, other } = await loadFixture(deployFixture);
       const info = await registry.getIssuer(other.address);
 
@@ -299,10 +346,13 @@ describe("CertificateRegistry", () => {
     });
   });
 
+  // 5. Kiểm tra nghiệp vụ tạm khóa và mở khóa chứng chỉ (Temporary Locking)
   describe("Temporary locking", () => {
     it("allows the issuing issuer to lock and unlock", async () => {
+      // Đơn vị đã phát hành có quyền tạm khóa và mở khóa lại chứng chỉ
       const { registry, issuer } = await loadFixture(issuedFixture);
 
+      // Tạm khóa: trạng thái chuyển sang isLocked=true và isValid=false
       await expect(registry.connect(issuer).lockCertificate(CERT_ID))
         .to.emit(registry, "CertificateLocked")
         .withArgs(idHash(CERT_ID), issuer.address, anyValue);
@@ -311,6 +361,7 @@ describe("CertificateRegistry", () => {
       expect(cert.isLocked).to.equal(true);
       expect(await registry.isValid(CERT_ID)).to.equal(false);
 
+      // Mở khóa: trạng thái chuyển về isLocked=false và isValid=true
       await expect(registry.connect(issuer).unlockCertificate(CERT_ID))
         .to.emit(registry, "CertificateUnlocked")
         .withArgs(idHash(CERT_ID), issuer.address, anyValue);
@@ -321,6 +372,7 @@ describe("CertificateRegistry", () => {
     });
 
     it("rejects locking by a non-issuer", async () => {
+      // Tài khoản ngoài không thể tự ý khóa chứng chỉ
       const { registry, other } = await loadFixture(issuedFixture);
 
       await expect(
@@ -329,6 +381,7 @@ describe("CertificateRegistry", () => {
     });
 
     it("rejects double locking", async () => {
+      // Không cho phép tạm khóa 2 lần liên tiếp trên chứng chỉ đã bị khóa
       const { registry, issuer } = await loadFixture(issuedFixture);
       await registry.connect(issuer).lockCertificate(CERT_ID);
 
@@ -338,6 +391,7 @@ describe("CertificateRegistry", () => {
     });
 
     it("allows owner to unlock and rejects unlocking an active certificate", async () => {
+      // Owner có quyền mở khóa xử lý sự cố; từ chối mở khóa chứng chỉ đang bình thường
       const { registry, owner, issuer } = await loadFixture(issuedFixture);
       await registry.connect(issuer).lockCertificate(CERT_ID);
 
@@ -348,6 +402,7 @@ describe("CertificateRegistry", () => {
     });
 
     it("rejects locking a revoked certificate", async () => {
+      // Không cho phép khóa chứng chỉ đã bị thu hồi vĩnh viễn
       const { registry, issuer } = await loadFixture(issuedFixture);
       await registry.connect(issuer).revokeCertificate(CERT_ID);
 
@@ -357,8 +412,10 @@ describe("CertificateRegistry", () => {
     });
   });
 
+  // 6. Kiểm tra nghiệp vụ thu hồi chứng chỉ (Revocation)
   describe("Revocation", () => {
     it("allows the issuing issuer to revoke", async () => {
+      // Đơn vị đã cấp có quyền thu hồi chứng chỉ do mình phát hành
       const { registry, issuer } = await loadFixture(issuedFixture);
 
       await expect(registry.connect(issuer).revokeCertificate(CERT_ID))
@@ -371,6 +428,7 @@ describe("CertificateRegistry", () => {
     });
 
     it("allows the owner to revoke", async () => {
+      // Owner quản trị trường có quyền thu hồi bất kỳ chứng chỉ nào
       const { registry, owner } = await loadFixture(issuedFixture);
 
       await expect(registry.connect(owner).revokeCertificate(CERT_ID)).to.emit(
@@ -382,6 +440,7 @@ describe("CertificateRegistry", () => {
     });
 
     it("rejects revocation from a stranger", async () => {
+      // Ví người lạ không thể thu hồi chứng chỉ
       const { registry, other } = await loadFixture(issuedFixture);
 
       await expect(
@@ -390,6 +449,7 @@ describe("CertificateRegistry", () => {
     });
 
     it("rejects double revocation", async () => {
+      // Không thể thu hồi lại chứng chỉ đã bị thu hồi trước đó
       const { registry, issuer } = await loadFixture(issuedFixture);
       await registry.connect(issuer).revokeCertificate(CERT_ID);
 
@@ -399,6 +459,7 @@ describe("CertificateRegistry", () => {
     });
 
     it("rejects revoking an unknown certificate", async () => {
+      // Báo lỗi CertificateNotFound nếu thu hồi chứng chỉ không tồn tại
       const { registry, issuer } = await loadFixture(issuerFixture);
 
       await expect(
@@ -407,6 +468,7 @@ describe("CertificateRegistry", () => {
     });
 
     it("keeps old certificates valid after issuer removal", async () => {
+      // Tính toàn vẹn: khi đơn vị cấp bị gỡ quyền, các chứng chỉ họ từng cấp vẫn giữ nguyên giá trị
       const { registry, issuer } = await loadFixture(issuedFixture);
       await registry.removeIssuer(issuer.address);
 
@@ -417,8 +479,10 @@ describe("CertificateRegistry", () => {
     });
   });
 
+  // 7. Kiểm tra chuyển nhượng quyền quản trị hệ thống (Ownership Management)
   describe("Ownership", () => {
     it("transfers ownership", async () => {
+      // Owner có thể chuyển giao quyền quản trị sang ví mới thành công
       const { registry, owner, other } = await loadFixture(deployFixture);
 
       await expect(registry.transferOwnership(other.address))
@@ -429,6 +493,7 @@ describe("CertificateRegistry", () => {
     });
 
     it("rejects zero address as new owner", async () => {
+      // Từ chối chuyển quyền sang ví rỗng 0x0
       const { registry } = await loadFixture(deployFixture);
 
       await expect(
@@ -437,6 +502,7 @@ describe("CertificateRegistry", () => {
     });
 
     it("rejects transferring to the current owner", async () => {
+      // Từ chối chuyển quyền cho chính bản thân owner hiện tại
       const { registry, owner } = await loadFixture(deployFixture);
 
       await expect(
@@ -445,6 +511,7 @@ describe("CertificateRegistry", () => {
     });
 
     it("removes owner rights from the previous owner", async () => {
+      // Sau khi chuyển nhượng, Owner cũ mất hoàn toàn quyền hạn quản trị
       const { registry, owner, issuer, other } = await loadFixture(deployFixture);
       await registry.transferOwnership(other.address);
 
