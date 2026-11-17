@@ -187,7 +187,7 @@ export default function VerifyPage() {
                 Nhập mã định danh văn bằng
               </h3>
               <p className="text-xs text-[#6F5C4A]">
-                Mã văn bằng được in ở góc dưới hoặc mã QR trên chứng chỉ (Ví dụ: <code className="font-mono text-[#010E1C]">UIT-DEG-2026-0001</code>).
+                Mã văn bằng được in ở góc dưới hoặc mã QR trên chứng chỉ (Ví dụ: <code className="font-mono text-[#010E1C]">CTUT-DEG-2026-0001</code>).
               </p>
 
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-2">

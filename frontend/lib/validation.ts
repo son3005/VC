@@ -8,17 +8,23 @@ export const loginSchema = z.object({
 export type LoginFormData = z.infer<typeof loginSchema>;
 
 export const certificateIdRegexMap = {
-  degree: /^UIT-DEG-\d{4}-\d{4}$/,
-  course: /^UIT-CRS-\d{4}-\d{4}$/,
-  credit: /^UIT-CRE-\d{4}-\d{4}$/,
-  other: /^UIT-OTH-\d{4}-\d{4}$/,
+  degree: /^CTUT-DEG-\d{4}-\d{4,}$/,
+  course: /^CTUT-CRS-\d{4}-\d{4,}$/,
+  credit: /^CTUT-CRE-\d{4}-\d{4,}$/,
+  other: /^CTUT-OTH-\d{4}-\d{4,}$/,
 };
 
 export const issueBaseSchema = z.object({
   certificateType: z.enum(['degree', 'course', 'credit', 'other']),
   certificateId: z.string().min(5, 'Mã chứng chỉ không được để trống'),
   studentName: z.string().min(2, 'Họ tên từ 2 đến 100 ký tự').max(100, 'Họ tên không quá 100 ký tự'),
-  studentCode: z.string().regex(/^\d{6,12}$/, 'MSSV phải là dãy từ 6 đến 12 chữ số'),
+  studentCode: z
+    .string()
+    .trim()
+    .regex(
+      /^[A-Za-z0-9]{6,15}$/,
+      'MSSV phải gồm 6–15 ký tự chữ hoặc số (A-Z, 0-9), không khoảng trắng'
+    ),
 });
 
 // Helper validate điểm số

@@ -17,7 +17,7 @@ import {
 import type { PrepareCertificateInput } from "../schemas/certificate";
 import type { CreateIssuerInput } from "../schemas/issuer";
 import type { IssuerDTO, PaginationMeta } from "../types/api";
-import type { CertificateDetails } from "../types/certificate";
+import type { CertificateDetails, CertificateType } from "../types/certificate";
 import { HttpError } from "../utils/http-error";
 import { sha256Buffer } from "../utils/hash";
 import { certificatePdfService } from "./certificate-pdf";
@@ -331,11 +331,48 @@ export async function deactivateIssuer(
   return toIssuerDTO(issuer);
 }
 
+const CERTIFICATE_ID_PREFIX: Record<CertificateType, string> = {
+  degree: "CTUT-DEG",
+  course: "CTUT-CRS",
+  credit: "CTUT-CRE",
+  other: "CTUT-OTH",
+};
+
+/**
+ * Sinh mã chứng chỉ tự động tiếp theo theo loại chứng chỉ và năm hiện tại
+ * VD: CTUT-DEG-2026-0001 -> CTUT-DEG-2026-0002
+ */
+export async function getNextCertificateId(
+  type: CertificateType
+): Promise<string> {
+  const year = new Date().getFullYear();
+  const prefix = `${CERTIFICATE_ID_PREFIX[type]}-${year}-`;
+  const regex = new RegExp(`^${prefix}(\\d+)$`);
+
+  const docs = await Certificate.find({
+    certificateId: { $regex: `^${prefix}\\d+$` },
+  })
+    .select("certificateId")
+    .lean();
+
+  let maxSeq = 0;
+  for (const doc of docs) {
+    const match = regex.exec(doc.certificateId);
+    if (match) {
+      const seq = Number.parseInt(match[1], 10);
+      if (seq > maxSeq) maxSeq = seq;
+    }
+  }
+
+  return `${prefix}${String(maxSeq + 1).padStart(4, "0")}`;
+}
+
 /** Lớp dịch vụ Issuer kế thừa CertificateService */
 export class IssuerService extends CertificateService {
   confirmCertificate = confirmCertificate;
   listIssuerCertificates = listIssuerCertificates;
   prepareCertificate = prepareCertificate;
+  getNextCertificateId = getNextCertificateId;
   lockCertificate = lockCertificate;
   unlockCertificate = unlockCertificate;
 }

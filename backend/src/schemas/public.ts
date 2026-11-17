@@ -37,10 +37,12 @@ export const publicSearchQuerySchema = paginationSchema.extend({
   /** Chuyên ngành đào tạo (ví dụ: "Kỹ thuật phần mềm", "An toàn thông tin") */
   major: z.string().trim().max(100).optional(),
 
-  /** Mã số sinh viên (MSSV) gồm 6 đến 12 chữ số */
+  /** Mã số sinh viên (MSSV) gồm 6 đến 15 ký tự chữ hoặc số */
   studentCode: z
     .string()
-    .regex(/^[0-9]{6,12}$/, "MSSV không hợp lệ")
+    .trim()
+    .regex(/^[A-Za-z0-9]{6,15}$/, "MSSV không hợp lệ")
+    .transform((value) => value.toUpperCase())
     .optional(),
 
   /** Trạng thái của chứng chỉ: "active", "revoked", "locked" */

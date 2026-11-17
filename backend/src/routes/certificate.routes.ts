@@ -4,6 +4,7 @@ import {
   getCertificateController,
   listCertificatesController,
   lockCertificateController,
+  nextCertificateIdController,
   prepareCertificateController,
   revokeCertificateController,
   unlockCertificateController,
@@ -40,6 +41,12 @@ router.use(requireAuth);
  * - Phân trang dữ liệu (pagination: page, limit)
  */
 router.get("/", requireActiveIssuer, listCertificatesController);
+
+/**
+ * GET /api/certificates/next-id?type=degree
+ * Sinh mã chứng chỉ tự động tiếp theo theo loại chứng chỉ (CTUT-DEG-YYYY-NNNN).
+ */
+router.get("/next-id", requireActiveIssuer, nextCertificateIdController);
 
 /**
  * POST /api/certificates/prepare

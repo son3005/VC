@@ -26,7 +26,7 @@ const base = {
  */
 const degree = {
   certificateType: "degree" as const,
-  certificateId: "UIT-DEG-2026-0001",
+  certificateId: "CTUT-DEG-2026-0001",
   ...base,
   details: {
     degreeTitle: "Cử nhân",
@@ -55,7 +55,7 @@ describe("prepareCertificateSchema", () => {
   it("accepts a valid course", () => {
     const result = prepareCertificateSchema.safeParse({
       certificateType: "course",
-      certificateId: "UIT-CRS-2026-0142",
+      certificateId: "CTUT-CRS-2026-0142",
       ...base,
       details: {
         courseCode: "CS409",
@@ -78,7 +78,7 @@ describe("prepareCertificateSchema", () => {
   it("accepts a valid credit certificate", () => {
     const result = prepareCertificateSchema.safeParse({
       certificateType: "credit",
-      certificateId: "UIT-CRE-2026-0035",
+      certificateId: "CTUT-CRE-2026-0035",
       ...base,
       details: {
         programName: "Kỹ thuật phần mềm",
@@ -98,7 +98,7 @@ describe("prepareCertificateSchema", () => {
   it("accepts a valid other certificate", () => {
     const result = prepareCertificateSchema.safeParse({
       certificateType: "other",
-      certificateId: "UIT-OTH-2026-0007",
+      certificateId: "CTUT-OTH-2026-0007",
       ...base,
       details: {
         title: "CHỨNG NHẬN THAM GIA",
@@ -117,7 +117,7 @@ describe("prepareCertificateSchema", () => {
   it("rejects a certificate id with the wrong prefix", () => {
     const result = prepareCertificateSchema.safeParse({
       ...degree,
-      certificateId: "UIT-CRS-2026-0001",
+      certificateId: "CTUT-CRS-2026-0001",
     });
 
     expect(result.success).toBe(false);
@@ -143,7 +143,7 @@ describe("prepareCertificateSchema", () => {
   it("rejects a grade above 10", () => {
     const result = prepareCertificateSchema.safeParse({
       certificateType: "course",
-      certificateId: "UIT-CRS-2026-0142",
+      certificateId: "CTUT-CRS-2026-0142",
       ...base,
       details: {
         courseCode: "CS409",
@@ -165,7 +165,7 @@ describe("prepareCertificateSchema", () => {
   it("rejects completedCredits greater than totalCredits", () => {
     const result = prepareCertificateSchema.safeParse({
       certificateType: "credit",
-      certificateId: "UIT-CRE-2026-0035",
+      certificateId: "CTUT-CRE-2026-0035",
       ...base,
       details: {
         programName: "Kỹ thuật phần mềm",
@@ -189,6 +189,34 @@ describe("prepareCertificateSchema", () => {
     });
 
     expect(result.success).toBe(false);
+  });
+
+  it("accepts alphanumeric student code up to 15 chars and normalizes to uppercase", () => {
+    const result = prepareCertificateSchema.safeParse({
+      ...degree,
+      studentCode: "ctut2100123a",
+    });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.studentCode).toBe("CTUT2100123A");
+    }
+  });
+
+  it("rejects student code with spaces or longer than 15 chars", () => {
+    expect(
+      prepareCertificateSchema.safeParse({
+        ...degree,
+        studentCode: "CTUT 21001",
+      }).success
+    ).toBe(false);
+
+    expect(
+      prepareCertificateSchema.safeParse({
+        ...degree,
+        studentCode: "CTUT210012345678",
+      }).success
+    ).toBe(false);
   });
 });
 

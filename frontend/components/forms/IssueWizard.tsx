@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
 import { useWallet } from '@/hooks/useWallet';
@@ -36,6 +36,7 @@ import {
   Loader2,
   AlertTriangle,
   ExternalLink,
+  RefreshCw,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -61,7 +62,8 @@ export function IssueWizard() {
 
   // Dữ liệu Form Bước 1
   const [certType, setCertType] = useState<CertificateType>('degree');
-  const [certId, setCertId] = useState('UIT-DEG-2026-0001');
+  const [certId, setCertId] = useState(`CTUT-DEG-${new Date().getFullYear()}-0001`);
+  const [isGeneratingId, setIsGeneratingId] = useState(false);
   const [studentName, setStudentName] = useState('');
   const [studentCode, setStudentCode] = useState('');
 
@@ -121,17 +123,36 @@ export function IssueWizard() {
   const [confirmSuccess, setConfirmSuccess] = useState(false);
   const [confirmError, setConfirmError] = useState<string | null>(null);
 
-  // Khi đổi certType, cập nhật mẫu mã văn bằng gợi ý
+  const fetchNextCertId = useCallback(async (type: CertificateType) => {
+    const year = new Date().getFullYear();
+    const fallbackMap: Record<CertificateType, string> = {
+      degree: `CTUT-DEG-${year}-0001`,
+      course: `CTUT-CRS-${year}-0001`,
+      credit: `CTUT-CRE-${year}-0001`,
+      other: `CTUT-OTH-${year}-0001`,
+    };
+    setCertId(fallbackMap[type]);
+    setIsGeneratingId(true);
+    try {
+      const res = await api.nextCertificateId(type);
+      if (res.data?.certificateId) {
+        setCertId(res.data.certificateId);
+      }
+    } catch {
+      // Giữ mã gợi ý fallback nếu chưa lấy được từ API
+    } finally {
+      setIsGeneratingId(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void fetchNextCertId('degree');
+  }, [fetchNextCertId]);
+
+  // Khi đổi certType, tự động lấy mã văn bằng tiếp theo
   const handleTypeChange = (newType: CertificateType) => {
     setCertType(newType);
-    const year = new Date().getFullYear();
-    const prefixMap = {
-      degree: `UIT-DEG-${year}-0001`,
-      course: `UIT-CRS-${year}-0001`,
-      credit: `UIT-CRE-${year}-0001`,
-      other: `UIT-OTH-${year}-0001`,
-    };
-    setCertId(prefixMap[newType]);
+    void fetchNextCertId(newType);
   };
 
   const handleCourseGradeScaleChange = (
@@ -217,12 +238,15 @@ export function IssueWizard() {
   const validateStep1 = (): boolean => {
     const errors: Record<string, string> = {};
 
+    const normalizedCertId = certId.trim().toUpperCase();
+    const normalizedStudentCode = studentCode.trim().toUpperCase();
+
     // Validate base
     const baseResult = issueBaseSchema.safeParse({
       certificateType: certType,
-      certificateId: certId.trim(),
+      certificateId: normalizedCertId,
       studentName: studentName.trim(),
-      studentCode: studentCode.trim(),
+      studentCode: normalizedStudentCode,
     });
 
     if (!baseResult.success) {
@@ -233,8 +257,14 @@ export function IssueWizard() {
 
     // Regex check theo loại
     const regex = certificateIdRegexMap[certType];
-    if (regex && !regex.test(certId.trim())) {
-      errors.certificateId = `Mã không đúng định dạng chuẩn của loại ${certType}. Ví dụ hợp lệ: UIT-${certType.slice(0, 3).toUpperCase()}-2026-0001`;
+    const examplePrefixMap: Record<CertificateType, string> = {
+      degree: 'CTUT-DEG',
+      course: 'CTUT-CRS',
+      credit: 'CTUT-CRE',
+      other: 'CTUT-OTH',
+    };
+    if (regex && !regex.test(normalizedCertId)) {
+      errors.certificateId = `Mã không đúng định dạng chuẩn của loại ${certType}. Ví dụ hợp lệ: ${examplePrefixMap[certType]}-2026-0001`;
     }
 
     // Validate details theo schema tương ứng
@@ -284,9 +314,9 @@ export function IssueWizard() {
     try {
       const payload = {
         certificateType: certType,
-        certificateId: certId.trim(),
+        certificateId: certId.trim().toUpperCase(),
         studentName: studentName.trim(),
-        studentCode: studentCode.trim(),
+        studentCode: studentCode.trim().toUpperCase(),
         details: getActiveDetails(),
       };
 
@@ -321,7 +351,7 @@ export function IssueWizard() {
 
       // Gửi giao dịch lên smart contract
       const hash = await issueCertificateOnChain(
-        certId.trim(),
+        certId.trim().toUpperCase(),
         preparedData.fileHash,
         preparedData.cid
       );
@@ -369,9 +399,9 @@ export function IssueWizard() {
     try {
       const payload = {
         certificateType: certType,
-        certificateId: certId.trim(),
+        certificateId: certId.trim().toUpperCase(),
         studentName: studentName.trim(),
-        studentCode: studentCode.trim(),
+        studentCode: studentCode.trim().toUpperCase(),
         details: getActiveDetails(),
         fileHash: preparedData.fileHash,
         ipfsCid: preparedData.cid,
@@ -404,16 +434,7 @@ export function IssueWizard() {
     setStep(1);
     setStudentName('');
     setStudentCode('');
-    // Tạo mã mới ngẫu nhiên để tránh xung đột mã cũ (409)
-    const year = new Date().getFullYear();
-    const rand = Math.floor(1000 + Math.random() * 9000);
-    const prefixMap = {
-      degree: `UIT-DEG-${year}-${rand}`,
-      course: `UIT-CRS-${year}-${rand}`,
-      credit: `UIT-CRE-${year}-${rand}`,
-      other: `UIT-OTH-${year}-${rand}`,
-    };
-    setCertId(prefixMap[certType]);
+    void fetchNextCertId(certType);
     setPreparedData(null);
     setTxHash(null);
     setTxState('idle');
@@ -515,13 +536,27 @@ export function IssueWizard() {
 
             {/* Thông tin cơ bản: Mã, Tên, MSSV */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <Input
-                label="Mã văn bằng"
-                value={certId}
-                onChange={(e) => setCertId(e.target.value)}
-                error={formErrors.certificateId}
-                className="font-mono"
-              />
+              <div className="space-y-1">
+                <Input
+                  label="Mã văn bằng"
+                  value={certId}
+                  onChange={(e) => setCertId(e.target.value.toUpperCase())}
+                  error={formErrors.certificateId}
+                  className="font-mono uppercase"
+                  rightIcon={
+                    <button
+                      type="button"
+                      onClick={() => void fetchNextCertId(certType)}
+                      disabled={isGeneratingId}
+                      title="Tạo mã văn bằng tự động tiếp theo"
+                      className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-semibold bg-[#FAF4DF] border border-[#E3D5B8] text-[#010E1C] hover:border-[#E6AB42] transition-colors disabled:opacity-50"
+                    >
+                      <RefreshCw className={`w-3 h-3 ${isGeneratingId ? 'animate-spin' : ''}`} />
+                      <span>Tạo mã</span>
+                    </button>
+                  }
+                />
+              </div>
 
               <Input
                 label="Họ và tên người học"
@@ -533,11 +568,11 @@ export function IssueWizard() {
 
               <Input
                 label="Mã số sinh viên (MSSV)"
-                placeholder="2311095"
+                placeholder="CTUT2100123"
                 value={studentCode}
-                onChange={(e) => setStudentCode(e.target.value)}
+                onChange={(e) => setStudentCode(e.target.value.toUpperCase())}
                 error={formErrors.studentCode}
-                className="font-mono"
+                className="font-mono uppercase"
               />
             </div>
 
