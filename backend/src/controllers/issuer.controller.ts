@@ -1,5 +1,6 @@
 import type { NextFunction, Request, Response } from "express";
 import {
+  activateIssuerSchema,
   createIssuerSchema,
   deactivateIssuerSchema,
   issuerListQuerySchema,
@@ -55,6 +56,37 @@ export async function deactivateIssuerController(
     const issuer = await adminService.deactivateIssuer(id, txHash);
 
     res.json({ success: true, data: issuer });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function activateIssuerController(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const id = objectIdSchema.parse(req.params.id);
+    const { txHash } = activateIssuerSchema.parse(req.body);
+    const issuer = await adminService.activateIssuer(id, txHash);
+
+    res.json({ success: true, data: issuer });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function deleteIssuerController(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const id = objectIdSchema.parse(req.params.id);
+    const result = await adminService.deleteIssuer(id);
+
+    res.json({ success: true, data: result });
   } catch (error) {
     next(error);
   }

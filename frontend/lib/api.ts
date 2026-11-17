@@ -38,6 +38,9 @@ function getLoadingMessage(path: string, method = 'GET'): string | null {
   if (path.includes('/certificates/prepare')) return 'Đang tạo PDF và mã băm...';
   if (path.includes('/certificates/confirm')) return 'Đang lưu chứng chỉ...';
   if (path.includes('/revoke')) return 'Đang thu hồi chứng chỉ...';
+  if (path.includes('/activate')) return 'Đang mở khoá đơn vị cấp...';
+  if (path.includes('/deactivate')) return 'Đang khoá đơn vị cấp...';
+  if (path.includes('/issuers') && method === 'DELETE') return 'Đang xoá đơn vị cấp...';
   if (path.includes('/issuers')) return 'Đang thêm đơn vị cấp...';
   return 'Đang xử lý yêu cầu...';
 }
@@ -170,6 +173,17 @@ export const api = {
     request<Issuer>(`/api/issuers/${encodeURIComponent(id)}/deactivate`, {
       method: 'POST',
       body: JSON.stringify({ txHash }),
+    }),
+
+  activateIssuer: (id: string, txHash: string) =>
+    request<Issuer>(`/api/issuers/${encodeURIComponent(id)}/activate`, {
+      method: 'POST',
+      body: JSON.stringify({ txHash }),
+    }),
+
+  deleteIssuer: (id: string) =>
+    request<{ deleted: true; id: string }>(`/api/issuers/${encodeURIComponent(id)}`, {
+      method: 'DELETE',
     }),
 
   adminStats: () => request<AdminStats>('/api/admin/stats'),
