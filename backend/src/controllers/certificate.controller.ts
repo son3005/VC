@@ -2,6 +2,7 @@ import type { NextFunction, Request, Response } from "express";
 import {
   certificateListQuerySchema,
   confirmCertificateSchema,
+  nextCertificateIdQuerySchema,
   prepareCertificateSchema,
   revokeCertificateSchema,
 } from "../schemas/certificate";
@@ -20,6 +21,20 @@ function getActor(req: Request): CertificateActor {
     role: req.user.role,
     walletAddress: req.user.walletAddress,
   };
+}
+
+export async function nextCertificateIdController(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const { type } = nextCertificateIdQuerySchema.parse(req.query);
+    const certificateId = await issuerService.getNextCertificateId(type);
+    res.json({ success: true, data: { certificateId } });
+  } catch (error) {
+    next(error);
+  }
 }
 
 export async function prepareCertificateController(

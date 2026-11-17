@@ -167,7 +167,7 @@ function SearchPageContent() {
               setQueryInput(val);
               setCurrentPage(1);
             }}
-            placeholder="Tìm theo Mã văn bằng (UIT-DEG-...), Họ tên, hoặc MSSV..."
+            placeholder="Tìm theo Mã văn bằng (CTUT-DEG-...), Họ tên, hoặc MSSV..."
             size="large"
             autoFocus
           />

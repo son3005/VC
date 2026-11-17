@@ -238,7 +238,9 @@ const certificateSchema = new Schema<ICertificate>(
     studentCode: {
       type: String,
       required: true,
-      match: /^[0-9]{6,12}$/, // Mã sinh viên gồm 6 đến 12 số
+      uppercase: true,
+      trim: true,
+      match: /^[A-Z0-9]{6,15}$/, // Mã sinh viên gồm 6 đến 15 ký tự A-Z, 0-9, không khoảng trắng
     },
     major: {
       type: String,

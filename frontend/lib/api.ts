@@ -122,6 +122,11 @@ export const api = {
       body: JSON.stringify(body),
     }),
 
+  nextCertificateId: (type: string) =>
+    request<{ certificateId: string }>(
+      `/api/certificates/next-id?type=${encodeURIComponent(type)}`
+    ),
+
   confirmCertificate: (body: unknown) =>
     request<CertificateIssuer>('/api/certificates/confirm', {
       method: 'POST',

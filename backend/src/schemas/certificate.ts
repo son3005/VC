@@ -42,11 +42,16 @@ const studentNameSchema = z
 
 /**
  * Schema xác thực Mã số sinh viên (MSSV)
- * - Định dạng: Bắt buộc từ 6 đến 12 ký tự số liên tiếp.
+ * - Định dạng: Từ 6 đến 15 ký tự chữ cái (A-Z) hoặc chữ số (0-9), không khoảng trắng.
  */
 const studentCodeSchema = z
   .string()
-  .regex(/^[0-9]{6,12}$/, "MSSV phải gồm 6–12 chữ số");
+  .trim()
+  .regex(
+    /^[A-Za-z0-9]{6,15}$/,
+    "MSSV phải gồm 6–15 ký tự chữ hoặc số (A-Z, 0-9), không khoảng trắng"
+  )
+  .transform((value) => value.toUpperCase());
 
 /**
  * Schema xác thực năm tốt nghiệp / năm học
@@ -246,10 +251,10 @@ export const prepareCertificateSchema = z
   ])
   .superRefine((value, ctx) => {
     const prefix: Record<typeof value.certificateType, string> = {
-      degree: "UIT-DEG",
-      course: "UIT-CRS",
-      credit: "UIT-CRE",
-      other: "UIT-OTH",
+      degree: "CTUT-DEG",
+      course: "CTUT-CRS",
+      credit: "CTUT-CRE",
+      other: "CTUT-OTH",
     };
 
     if (!value.certificateId.startsWith(prefix[value.certificateType])) {
@@ -320,6 +325,10 @@ export const adminCertificateListQuerySchema = certificateListQuerySchema.extend
     .regex(/^0x[a-f0-9]{40}$/)
     .optional(),
   year: z.coerce.number().int().min(2000).max(2100).optional(),
+});
+
+export const nextCertificateIdQuerySchema = z.object({
+  type: certificateTypeSchema.default("degree"),
 });
 
 /** Kiểu TypeScript tĩnh cho truy vấn danh sách chứng chỉ của Quản trị viên */

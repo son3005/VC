@@ -81,7 +81,7 @@ export default function HomePage() {
                 onChange={setSearchQuery}
                 onSubmit={handleSearchSubmit}
                 size="large"
-                placeholder="Nhập Mã văn bằng (VD: UIT-DEG-2026-0001), Họ tên, hoặc MSSV rồi nhấn Enter..."
+                placeholder="Nhập Mã văn bằng (VD: CTUT-DEG-2026-0001), Họ tên, hoặc MSSV rồi nhấn Enter..."
               />
               <p className="text-xs text-[#6F5C4A] mt-2 text-left sm:text-center pl-2">
                 Gợi ý: Nhấn phím <kbd className="font-mono bg-[#FFFDF7] px-1.5 py-0.5 rounded border border-[#E3D5B8] text-[11px]">/</kbd> để mở nhanh ô tìm kiếm.

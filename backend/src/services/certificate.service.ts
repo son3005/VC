@@ -629,9 +629,9 @@ export async function searchPublicCertificates(
   if (query.q) {
     const q = query.q.trim();
 
-    if (/^[0-9]{6,12}$/.test(q)) {
-      filter.studentCode = q;
-    } else if (/^UIT-[A-Z]+-[0-9]{4}-[0-9]{4}$/i.test(q)) {
+    if (/^(?=.*\d)[A-Za-z0-9]{6,15}$/.test(q)) {
+      filter.studentCode = q.toUpperCase();
+    } else if (/^(CTUT|UIT)-[A-Z]+-[0-9]{4}-[0-9]{4,}$/i.test(q)) {
       filter.certificateId = q.toUpperCase();
     } else {
       const regex = new RegExp(escapeRegex(normalizeText(q)), "i");
