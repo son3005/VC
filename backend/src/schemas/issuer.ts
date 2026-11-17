@@ -120,5 +120,7 @@ export const deactivateIssuerSchema = z.object({
   txHash: txHashSchema,
 });
 
+export const activateIssuerSchema = deactivateIssuerSchema;
+
 /** Kiểu TypeScript tĩnh cho dữ liệu tạo đơn vị cấp phát mới */
 export type CreateIssuerInput = z.infer<typeof createIssuerSchema>;

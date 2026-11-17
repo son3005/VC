@@ -19,8 +19,10 @@
 import { Certificate, Issuer, User } from "../models";
 import type { CertificateType } from "../types/certificate";
 import {
+  activateIssuer as activateIssuerFn,
   createIssuer as createIssuerFn,
   deactivateIssuer as deactivateIssuerFn,
+  deleteIssuer as deleteIssuerFn,
   IssuerService,
   listIssuers as listIssuersFn,
 } from "./issuer.service";
@@ -145,6 +147,12 @@ export class AdminService extends IssuerService {
 
   /** Vô hiệu hóa đơn vị cấp phát trên cơ sở dữ liệu và xác nhận qua giao dịch chuỗi */
   deactivateIssuer = deactivateIssuerFn;
+
+  /** Kích hoạt lại (mở khoá) đơn vị cấp phát trên cơ sở dữ liệu và xác nhận qua giao dịch chuỗi */
+  activateIssuer = activateIssuerFn;
+
+  /** Xoá đơn vị cấp phát chưa cấp chứng chỉ khỏi cơ sở dữ liệu */
+  deleteIssuer = deleteIssuerFn;
 
   /** Lấy trạng thái đồng bộ khối và mốc kiểm soát checkpoint hiện tại */
   syncStatus = getSyncStatus;

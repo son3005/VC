@@ -331,6 +331,103 @@ export async function deactivateIssuer(
   return toIssuerDTO(issuer);
 }
 
+/**
+ * Kích hoạt lại (Mở khoá) đơn vị cấp phát đã bị khoá
+ * - Xác minh sự kiện IssuerUpdated(active=true) on-chain
+ * - Cập nhật isActive = true, onChainActive = true và ghi log ChainEvent
+ */
+export async function activateIssuer(
+  issuerId: string,
+  txHash: string
+): Promise<IssuerDTO> {
+  const issuer = await Issuer.findById(issuerId);
+
+  if (!issuer) {
+    throw new HttpError(404, "ISSUER_NOT_FOUND", "Không tìm thấy đơn vị cấp");
+  }
+
+  if (issuer.isActive && issuer.onChainActive) {
+    return toIssuerDTO(issuer);
+  }
+
+  const event = await findIssuerUpdatedEvent(
+    txHash,
+    issuer.walletAddress,
+    issuer.name,
+    true
+  );
+  const onChain = await getIssuerOnChain(issuer.walletAddress);
+
+  if (!onChain.active) {
+    throw new HttpError(422, "TX_INVALID", "Issuer chưa được kích hoạt lại on-chain");
+  }
+
+  issuer.isActive = true;
+  issuer.onChainActive = true;
+  await issuer.save();
+
+  await ChainEvent.create({
+    txHash,
+    logIndex: event.logIndex,
+    blockNumber: event.blockNumber,
+    eventType: "IssuerUpdated",
+    payload: {
+      issuer: issuer.walletAddress,
+      name: issuer.name,
+      active: true,
+    },
+    contractAddress: env.CONTRACT_ADDRESS.toLowerCase(),
+    processedAt: new Date(),
+  }).catch((error) => {
+    const message = error instanceof Error ? error.message : String(error);
+    if (!message.includes("duplicate key")) {
+      console.error("[chain-event] issuer activate insert failed:", message);
+    }
+  });
+
+  return toIssuerDTO(issuer);
+}
+
+/**
+ * Xoá đơn vị cấp phát khỏi cơ sở dữ liệu (chỉ cho phép khi đã khoá và chưa cấp chứng chỉ nào)
+ */
+export async function deleteIssuer(
+  issuerId: string
+): Promise<{ deleted: true; id: string }> {
+  const issuer = await Issuer.findById(issuerId);
+
+  if (!issuer) {
+    throw new HttpError(404, "ISSUER_NOT_FOUND", "Không tìm thấy đơn vị cấp");
+  }
+
+  const hasCertificates = await Certificate.exists({ issuerId: issuer._id });
+  if (hasCertificates) {
+    throw new HttpError(
+      409,
+      "ISSUER_HAS_CERTIFICATES",
+      "Không thể xoá đơn vị đã cấp chứng chỉ. Vui lòng chỉ dùng chức năng Khoá."
+    );
+  }
+
+  const onChain = await getIssuerOnChain(issuer.walletAddress);
+  if (onChain.active || issuer.isActive) {
+    throw new HttpError(
+      409,
+      "ISSUER_STILL_ACTIVE",
+      "Vui lòng khoá đơn vị trên blockchain trước khi xoá."
+    );
+  }
+
+  const linkedUserId = issuer.userId;
+  await Issuer.deleteOne({ _id: issuer._id });
+
+  if (linkedUserId) {
+    await User.deleteOne({ _id: linkedUserId, role: "issuer" }).catch(() => undefined);
+  }
+
+  return { deleted: true, id: issuerId };
+}
+
 const CERTIFICATE_ID_PREFIX: Record<CertificateType, string> = {
   degree: "CTUT-DEG",
   course: "CTUT-CRS",

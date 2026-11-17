@@ -34,6 +34,8 @@ import {
   ExternalLink,
   ShieldCheck,
   Lock,
+  Unlock,
+  Trash2,
   AlertTriangle,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -63,6 +65,12 @@ export default function AdminIssuersPage() {
   // Trạng thái điều khiển Modal khóa quyền cấp bằng của đơn vị
   const [deactivatingIssuer, setDeactivatingIssuer] = useState<Issuer | null>(null);
   const [isDeactivating, setIsDeactivating] = useState(false);
+
+  const [activatingIssuer, setActivatingIssuer] = useState<Issuer | null>(null);
+  const [isActivating, setIsActivating] = useState(false);
+
+  const [deletingIssuer, setDeletingIssuer] = useState<Issuer | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Truy vấn danh sách toàn bộ đơn vị phát hành từ Backend API với React Query
   const { data, isLoading, isError, refetch } = useQuery({
@@ -195,6 +203,49 @@ export default function AdminIssuersPage() {
       }
     } finally {
       setIsDeactivating(false);
+    }
+  };
+
+  const handleActivateIssuer = async () => {
+    if (!activatingIssuer) return;
+    setIsActivating(true);
+
+    try {
+      await assertCorrectNetworkAndSigner(user?.walletAddress);
+      const txHash = await addIssuerOnChain(
+        activatingIssuer.walletAddress,
+        activatingIssuer.name
+      );
+      await api.activateIssuer(activatingIssuer.id, txHash);
+      toast.success('Đã mở khoá quyền cấp chứng chỉ cho đơn vị.');
+      setActivatingIssuer(null);
+      refetch();
+    } catch (err: unknown) {
+      const errorObj = err as { code?: number | string; message?: string };
+      if (errorObj?.code === 4001) {
+        toast.error('Bạn đã từ chối ký giao dịch.');
+      } else {
+        toast.error(errorObj?.message || 'Không thể mở khoá đơn vị cấp.');
+      }
+    } finally {
+      setIsActivating(false);
+    }
+  };
+
+  const handleDeleteIssuer = async () => {
+    if (!deletingIssuer) return;
+    setIsDeleting(true);
+
+    try {
+      await api.deleteIssuer(deletingIssuer.id);
+      toast.success('Đã xoá đơn vị cấp khỏi hệ thống.');
+      setDeletingIssuer(null);
+      refetch();
+    } catch (err: unknown) {
+      const errorObj = err as { message?: string };
+      toast.error(errorObj?.message || 'Không thể xoá đơn vị cấp.');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -355,9 +406,27 @@ export default function AdminIssuersPage() {
                             <span>Khoá</span>
                           </Button>
                         ) : (
-                          <span className="text-[11px] font-semibold text-[#A48B73]">
-                            Đã khoá
-                          </span>
+                          <div className="inline-flex items-center gap-1.5">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="gap-1 text-[#010E1C] border-[#E6AB42]/60 hover:bg-[#FAF4DF]"
+                              onClick={() => setActivatingIssuer(issuer)}
+                            >
+                              <Unlock className="w-3.5 h-3.5 text-[#E6AB42]" />
+                              <span>Mở khoá</span>
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="gap-1 text-[#B23F4A] border-[#E6606A]/40 hover:bg-[#E6606A]/10"
+                              onClick={() => setDeletingIssuer(issuer)}
+                              title="Xoá đơn vị chưa cấp chứng chỉ"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                              <span>Xoá</span>
+                            </Button>
+                          </div>
                         )}
                       </td>
                     </tr>
@@ -536,6 +605,105 @@ export default function AdminIssuersPage() {
               >
                 <Lock className="w-4 h-4" />
                 <span>Xác nhận khoá on-chain</span>
+              </Button>
+            </div>
+          </div>
+        </Modal>
+
+        {/* Modal mở khoá issuer */}
+        <Modal
+          isOpen={!!activatingIssuer}
+          onClose={() => {
+            if (!isActivating) setActivatingIssuer(null);
+          }}
+          title="Mở khoá quyền cấp chứng chỉ"
+          maxWidth="md"
+        >
+          <div className="space-y-4 pt-2">
+            <div className="p-4 rounded-xl border border-[#E6AB42] bg-[#FAF4DF] text-xs text-[#010E1C] flex items-start gap-2.5">
+              <Unlock className="w-5 h-5 shrink-0 mt-0.5 text-[#E6AB42]" />
+              <div className="space-y-1 leading-relaxed">
+                <strong>KÍCH HOẠT LẠI QUYỀN PHÁT HÀNH ON-CHAIN</strong>
+                <p className="text-[#6F5C4A]">
+                  Giao dịch <code>addIssuer</code> sẽ được ký trên Sepolia để khôi phục quyền cấp chứng chỉ cho ví này.
+                </p>
+              </div>
+            </div>
+
+            <p className="text-xs text-[#6F5C4A]">
+              Đơn vị: <strong className="text-[#010E1C]">{activatingIssuer?.name}</strong>
+              <br />
+              Mã: <strong className="font-mono">{activatingIssuer?.code}</strong>
+            </p>
+
+            <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#E3D5B8]/60">
+              <Button
+                variant="outline"
+                size="md"
+                onClick={() => setActivatingIssuer(null)}
+                disabled={isActivating}
+              >
+                Hủy bỏ
+              </Button>
+              <Button
+                variant="primary"
+                size="md"
+                isLoading={isActivating}
+                disabled={!isCorrectNetwork}
+                onClick={handleActivateIssuer}
+                className="gap-2"
+              >
+                <Unlock className="w-4 h-4 text-[#E6AB42]" />
+                <span>Xác nhận mở khoá on-chain</span>
+              </Button>
+            </div>
+          </div>
+        </Modal>
+
+        {/* Modal xoá issuer */}
+        <Modal
+          isOpen={!!deletingIssuer}
+          onClose={() => {
+            if (!isDeleting) setDeletingIssuer(null);
+          }}
+          title="Xoá đơn vị đào tạo"
+          maxWidth="md"
+        >
+          <div className="space-y-4 pt-2">
+            <div className="p-4 rounded-xl border border-[#E6606A] bg-[#E6606A]/10 text-xs text-[#B23F4A] flex items-start gap-2.5">
+              <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5" />
+              <div className="space-y-1 leading-relaxed">
+                <strong>HÀNH ĐỘNG NÀY SẼ XOÁ HỒ SƠ & TÀI KHOẢN ĐƠN VỊ</strong>
+                <p>
+                  Chỉ xoá được đơn vị đã khoá on-chain và chưa từng cấp chứng chỉ nào. Dữ liệu trên Blockchain không bị ảnh hưởng.
+                </p>
+              </div>
+            </div>
+
+            <p className="text-xs text-[#6F5C4A]">
+              Đơn vị: <strong className="text-[#010E1C]">{deletingIssuer?.name}</strong>
+              <br />
+              Mã: <strong className="font-mono">{deletingIssuer?.code}</strong>
+            </p>
+
+            <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#E3D5B8]/60">
+              <Button
+                variant="outline"
+                size="md"
+                onClick={() => setDeletingIssuer(null)}
+                disabled={isDeleting}
+              >
+                Hủy bỏ
+              </Button>
+              <Button
+                variant="danger"
+                size="md"
+                isLoading={isDeleting}
+                onClick={handleDeleteIssuer}
+                className="gap-2"
+              >
+                <Trash2 className="w-4 h-4" />
+                <span>Xác nhận xoá</span>
               </Button>
             </div>
           </div>
