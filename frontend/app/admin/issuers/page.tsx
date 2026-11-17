@@ -1,5 +1,12 @@
 'use client';
 
+/**
+ * @file page.tsx
+ * @description Trang quản lý đơn vị đào tạo và cấp bằng (Issuers) dành cho Admin (/admin/issuers).
+ * Cung cấp chức năng xem danh sách đơn vị, thêm mới Issuer kèm ký ủy quyền on-chain (addIssuer),
+ * và khóa quyền phát hành văn bằng trên Smart Contract Ethereum Sepolia (removeIssuer).
+ */
+
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Container } from '@/components/layout/Container';
@@ -35,9 +42,10 @@ export default function AdminIssuersPage() {
   const { user } = useAuth();
   const { isCorrectNetwork, switchToSepolia } = useWallet();
 
+  // Trạng thái điều khiển mở/đóng Modal thêm mới Issuer
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
-  // Form State thêm mới Issuer
+  // Nhóm State quản lý thông tin biểu mẫu thêm mới Issuer
   const [issuerName, setIssuerName] = useState('');
   const [issuerCode, setIssuerCode] = useState('');
   const [issuerWallet, setIssuerWallet] = useState('');
@@ -45,23 +53,27 @@ export default function AdminIssuersPage() {
   const [issuerEmail, setIssuerEmail] = useState('');
   const [issuerPassword, setIssuerPassword] = useState('');
 
+  // Trạng thái lỗi biểu mẫu và tiến trình giao dịch blockchain khi thêm Issuer
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [txState, setTxState] = useState<TxState>('idle');
   const [txHash, setTxHash] = useState<string | null>(null);
   const [txError, setTxError] = useState<string | null>(null);
 
+  // Trạng thái điều khiển Modal khóa quyền cấp bằng của đơn vị
   const [deactivatingIssuer, setDeactivatingIssuer] = useState<Issuer | null>(null);
   const [isDeactivating, setIsDeactivating] = useState(false);
 
+  // Truy vấn danh sách toàn bộ đơn vị phát hành từ Backend API với React Query
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['adminIssuers'],
     queryFn: () => api.issuers(),
-    staleTime: 15 * 1000,
+    staleTime: 15 * 1000, // Dữ liệu cache trong 15 giây
   });
 
   const issuers = data?.data || [];
 
+  // Kiểm tra tính hợp lệ của dữ liệu đầu vào trong biểu mẫu thêm mới Issuer
   const validateForm = (): boolean => {
     const errors: Record<string, string> = {};
     if (!issuerName.trim()) errors.name = 'Tên đơn vị không được để trống';
@@ -97,6 +109,7 @@ export default function AdminIssuersPage() {
     return Object.keys(errors).length === 0;
   };
 
+  // Xử lý tạo mới Issuer: Ký giao dịch on-chain và lưu hồ sơ vào MongoDB
   const handleCreateIssuer = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateForm()) return;
@@ -106,15 +119,15 @@ export default function AdminIssuersPage() {
     setIsSubmitting(true);
 
     try {
-      // 1. Kiểm tra ví Admin và mạng Sepolia
+      // 1. Kiểm tra ví Admin đã kết nối và chuyển sang mạng Sepolia
       await assertCorrectNetworkAndSigner(user?.walletAddress);
 
-      // 2. Ký giao dịch on-chain trên Smart Contract
+      // 2. Ký giao dịch on-chain gọi hàm addIssuer trên Smart Contract
       const hash = await addIssuerOnChain(issuerWallet.trim(), issuerName.trim());
       setTxHash(hash);
       setTxState('mining');
 
-      // 3. Báo cho Backend lưu thông tin đơn vị vào hệ thống
+      // 3. Gửi thông tin kèm mã băm giao dịch về Backend để tạo bản ghi Issuer và User
       await api.createIssuer({
         name: issuerName.trim(),
         code: issuerCode.trim().toUpperCase(),
@@ -128,6 +141,7 @@ export default function AdminIssuersPage() {
       setTxState('success');
       toast.success('Đã thêm đơn vị cấp mới thành công trên Blockchain!');
 
+      // Đóng modal, đặt lại các trường nhập liệu và tải lại danh sách
       setTimeout(() => {
         setIsAddModalOpen(false);
         setTxState('idle');
@@ -142,6 +156,7 @@ export default function AdminIssuersPage() {
     } catch (err: unknown) {
       const errorObj = err as { code?: number | string; message?: string };
 
+      // Bắt lỗi khi Admin từ chối ký giao dịch trên MetaMask
       if (errorObj?.code === 4001 || errorObj?.message?.includes('user rejected')) {
         setTxState('rejected');
         setTxError('Bạn đã từ chối giao dịch trên MetaMask.');
@@ -156,13 +171,17 @@ export default function AdminIssuersPage() {
     }
   };
 
+  // Xử lý khóa quyền cấp bằng của Issuer: Ký giao dịch removeIssuer trên Smart Contract
   const handleDeactivateIssuer = async () => {
     if (!deactivatingIssuer) return;
     setIsDeactivating(true);
 
     try {
+      // Xác thực ví Admin và ký giao dịch hủy quyền on-chain
       await assertCorrectNetworkAndSigner(user?.walletAddress);
       const txHash = await removeIssuerOnChain(deactivatingIssuer.walletAddress);
+
+      // Đồng bộ trạng thái khóa off-chain về cơ sở dữ liệu
       await api.deactivateIssuer(deactivatingIssuer.id, txHash);
       toast.success('Đã khoá quyền cấp chứng chỉ của đơn vị.');
       setDeactivatingIssuer(null);
@@ -182,7 +201,7 @@ export default function AdminIssuersPage() {
   return (
     <div className="py-8 sm:py-12 flex-1 flex flex-col">
       <Container className="space-y-8">
-        {/* Header */}
+        {/* Phần đầu trang: Tiêu đề, mô tả và nút Thêm đơn vị cấp mới */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="space-y-1">
             <h1 className="font-serif text-2xl sm:text-3xl font-bold text-[#010E1C]">
@@ -204,7 +223,7 @@ export default function AdminIssuersPage() {
           </Button>
         </div>
 
-        {/* Danh sách Issuers */}
+        {/* Danh sách Issuers: Hiển thị trạng thái Loading Skeleton, Lỗi, Trống hoặc Bảng dữ liệu */}
         {isLoading ? (
           <div className="p-6 rounded-2xl border border-[#E3D5B8] bg-[#FFFDF7] space-y-3">
             {[1, 2, 3].map((i) => (
@@ -349,7 +368,7 @@ export default function AdminIssuersPage() {
           </div>
         )}
 
-        {/* Modal Thêm Đơn vị cấp mới */}
+        {/* Modal Thêm Đơn vị cấp mới (Bao gồm biểu mẫu và bước ký ủy quyền on-chain) */}
         <Modal
           isOpen={isAddModalOpen}
           onClose={() => {
@@ -430,7 +449,7 @@ export default function AdminIssuersPage() {
               Hệ thống sẽ tự tạo tài khoản <code>issuer</code> với email này để đơn vị đăng nhập tại <code>/login</code>.
             </p>
 
-            {/* Trạng thái Transaction */}
+            {/* Trạng thái xác thực giao dịch on-chain */}
             <TxStatus
               state={txState}
               txHash={txHash}
@@ -472,7 +491,7 @@ export default function AdminIssuersPage() {
           </form>
         </Modal>
 
-        {/* Modal khoá issuer */}
+        {/* Modal xác nhận khoá quyền cấp phát chứng chỉ của Issuer */}
         <Modal
           isOpen={!!deactivatingIssuer}
           onClose={() => {
