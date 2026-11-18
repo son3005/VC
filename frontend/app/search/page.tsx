@@ -42,7 +42,8 @@ function SearchPageContent() {
   const { data: filterOptionsData } = useQuery({
     queryKey: ['filterOptions'],
     queryFn: () => api.filters(),
-    staleTime: 5 * 60 * 1000,
+    staleTime: 30 * 1000,
+    refetchOnMount: 'always',
   });
 
   // Đồng bộ state lên URL query
