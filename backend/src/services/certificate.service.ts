@@ -754,9 +754,15 @@ export async function getPublicFilters(): Promise<{
   ]);
 
   return {
-    years: (years as number[]).sort((a, b) => b - a),
-    majors: (majors as string[]).sort((a, b) => a.localeCompare(b, "vi")),
-    types: types as string[],
+    years: (years as unknown[])
+      .filter((y): y is number => typeof y === "number" && Number.isFinite(y))
+      .sort((a, b) => b - a),
+    majors: (majors as unknown[])
+      .filter((m): m is string => typeof m === "string" && m.trim().length > 0)
+      .sort((a, b) => a.localeCompare(b, "vi")),
+    types: (types as unknown[]).filter(
+      (t): t is string => typeof t === "string" && t.trim().length > 0
+    ),
   };
 }
 

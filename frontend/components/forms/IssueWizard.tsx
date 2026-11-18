@@ -123,23 +123,34 @@ export function IssueWizard() {
   const [confirmSuccess, setConfirmSuccess] = useState(false);
   const [confirmError, setConfirmError] = useState<string | null>(null);
 
-  const fetchNextCertId = useCallback(async (type: CertificateType) => {
+  const fetchNextCertId = useCallback(async (type: CertificateType, isManual = false) => {
     const year = new Date().getFullYear();
-    const fallbackMap: Record<CertificateType, string> = {
-      degree: `CTUT-DEG-${year}-0001`,
-      course: `CTUT-CRS-${year}-0001`,
-      credit: `CTUT-CRE-${year}-0001`,
-      other: `CTUT-OTH-${year}-0001`,
+    const prefixMap: Record<CertificateType, string> = {
+      degree: `CTUT-DEG-${year}`,
+      course: `CTUT-CRS-${year}`,
+      credit: `CTUT-CRE-${year}`,
+      other: `CTUT-OTH-${year}`,
     };
-    setCertId(fallbackMap[type]);
+    const fallbackId = `${prefixMap[type]}-0001`;
+    if (!isManual) {
+      setCertId(fallbackId);
+    }
     setIsGeneratingId(true);
     try {
       const res = await api.nextCertificateId(type);
       if (res.data?.certificateId) {
         setCertId(res.data.certificateId);
+        if (isManual) {
+          toast.success(`Đã tạo mã văn bằng: ${res.data.certificateId}`);
+        }
       }
     } catch {
-      // Giữ mã gợi ý fallback nếu chưa lấy được từ API
+      if (isManual) {
+        const rand = String(Math.floor(1000 + Math.random() * 9000));
+        const localFallback = `${prefixMap[type]}-${rand}`;
+        setCertId(localFallback);
+        toast.success(`Đã tạo mã gợi ý: ${localFallback}`);
+      }
     } finally {
       setIsGeneratingId(false);
     }
@@ -542,11 +553,11 @@ export function IssueWizard() {
                   value={certId}
                   onChange={(e) => setCertId(e.target.value.toUpperCase())}
                   error={formErrors.certificateId}
-                  className="font-mono uppercase"
+                  className="font-mono uppercase pr-24"
                   rightIcon={
                     <button
                       type="button"
-                      onClick={() => void fetchNextCertId(certType)}
+                      onClick={() => void fetchNextCertId(certType, true)}
                       disabled={isGeneratingId}
                       title="Tạo mã văn bằng tự động tiếp theo"
                       className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-semibold bg-[#FAF4DF] border border-[#E3D5B8] text-[#010E1C] hover:border-[#E6AB42] transition-colors disabled:opacity-50"

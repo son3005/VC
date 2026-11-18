@@ -75,7 +75,7 @@ export default function AdminIssuersPage() {
   // Truy vấn danh sách toàn bộ đơn vị phát hành từ Backend API với React Query
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['adminIssuers'],
-    queryFn: () => api.issuers(),
+    queryFn: () => api.issuers(new URLSearchParams({ limit: '20' })),
     staleTime: 15 * 1000, // Dữ liệu cache trong 15 giây
   });
 
@@ -85,7 +85,7 @@ export default function AdminIssuersPage() {
   const validateForm = (): boolean => {
     const errors: Record<string, string> = {};
     if (!issuerName.trim()) errors.name = 'Tên đơn vị không được để trống';
-    if (!issuerCode.trim()) errors.code = 'Mã đơn vị không được để trống (VD: FIT-UIT)';
+    if (!issuerCode.trim()) errors.code = 'Mã đơn vị không được để trống (VD: CTUET-FIT)';
     if (!issuerWallet.trim()) {
       errors.wallet = 'Địa chỉ ví không được để trống';
     } else if (!/^0x[a-fA-F0-9]{40}$/.test(issuerWallet.trim())) {
@@ -99,7 +99,7 @@ export default function AdminIssuersPage() {
           errors.website = 'Địa chỉ website chỉ chấp nhận giao thức http:// hoặc https://';
         }
       } catch {
-        errors.website = 'Địa chỉ website không hợp lệ (Ví dụ: https://fit.uit.edu.vn)';
+        errors.website = 'Địa chỉ website không hợp lệ (Ví dụ: https://fit.ctuet.edu.vn)';
       }
     }
 
@@ -453,7 +453,7 @@ export default function AdminIssuersPage() {
           <form onSubmit={handleCreateIssuer} className="space-y-4 pt-2">
             <Input
               label="Tên đơn vị đào tạo"
-              placeholder="Khoa Công nghệ Thông tin - Trường ĐH CNTT"
+              placeholder="Khoa Công nghệ Thông tin - Trường ĐH KT-CN Cần Thơ"
               value={issuerName}
               onChange={(e) => setIssuerName(e.target.value)}
               error={formErrors.name}
@@ -463,7 +463,7 @@ export default function AdminIssuersPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <Input
                 label="Mã đơn vị (Code)"
-                placeholder="UIT-FIT"
+                placeholder="CTUET-FIT"
                 value={issuerCode}
                 onChange={(e) => setIssuerCode(e.target.value)}
                 error={formErrors.code}
@@ -473,7 +473,7 @@ export default function AdminIssuersPage() {
 
               <Input
                 label="Trang thông tin (Website - http/https)"
-                placeholder="https://fit.uit.edu.vn"
+                placeholder="https://fit.ctuet.edu.vn"
                 value={issuerWebsite}
                 onChange={(e) => setIssuerWebsite(e.target.value)}
                 error={formErrors.website}
@@ -495,7 +495,7 @@ export default function AdminIssuersPage() {
               <Input
                 label="Email đăng nhập của đơn vị"
                 type="email"
-                placeholder="issuer@fit.uit.edu.vn"
+                placeholder="issuer@fit.ctuet.edu.vn"
                 value={issuerEmail}
                 onChange={(e) => setIssuerEmail(e.target.value)}
                 error={formErrors.email}
